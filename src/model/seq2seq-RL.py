@@ -49,10 +49,6 @@ data_path = args.data_path
 restore_path = args.model_path
 ckpt_classifier = args.ckpt_classifier
 
-
-# In[2]:
-
-
 start_epoch = 0
 total_epochs = 40
 
@@ -315,14 +311,6 @@ RL training parameters
 """
 threshold = 0.2
 baseline = 0.5 # since our training data is balanced, 0.5 is reasonable 
-# bad_words = read_lines("/usr/project/xtmp/tn9td/vocab/swear_words_wikitionary.txt")
-# bad_indices = [token2index[word] 
-#                for word in bad_words 
-#                if word in vocab]
-# good_words = read_lines("/usr/project/xtmp/tn9td/vocab/polite_words.txt")
-# good_indices = [token2index[word] 
-#                for word in good_words 
-#                if word in vocab]
 bad_indices = good_indices = []
 
 """
@@ -333,19 +321,11 @@ num_classes = 2
 filter_sizes = [3, 4, 5]
 num_filters = 75
 
-
-# In[12]:
-
-
 def concat_states(states):
     state_lst = []
     for state in states:
         state_lst.append(tf.contrib.rnn.LSTMStateTuple(state[0], state[1]))
     return tuple(state_lst)
-
-
-# In[13]:
-
 
 def get_keep_prob(dropout_rate, is_training):
     keep_prob = tf.cond(
@@ -354,10 +334,6 @@ def get_keep_prob(dropout_rate, is_training):
         lambda: tf.constant(1.0))
     return keep_prob
 
-
-# In[14]:
-
-
 def dropout(cell, keep_prob, input_size):
     cell_dropout = tf.contrib.rnn.DropoutWrapper(
         cell,
@@ -365,16 +341,11 @@ def dropout(cell, keep_prob, input_size):
         variational_recurrent=True, dtype=tf.float32)        
     return cell_dropout
 
-
-# In[15]:
-
-
 def create_cell(input_size, hidden_size, keep_prob, num_proj=None, 
                 memory=None, memory_seq_lengths=None, reuse=False):
     cell = tf.contrib.rnn.LSTMCell(
         hidden_size, use_peepholes=True, # peephole: allow implementation of LSTMP
         initializer=tf.contrib.layers.xavier_initializer(),
-#         num_proj=num_proj, # testing, testing...
         forget_bias=1.0, reuse=reuse)
     cell = dropout(cell, keep_prob, input_size)
     # Note that the attention wrapper HAS TO come before projection wrapper,
@@ -431,10 +402,6 @@ def create_MultiRNNCell(hidden_sizes, keep_prob, num_proj=None,
         return tf.contrib.rnn.MultiRNNCell(
             [cell_first] + cells_in_between + [cell_last])
 
-
-# In[17]:
-
-
 def lstm(input_size, hidden_size, keep_prob, reuse):
     cell = tf.contrib.rnn.LSTMCell(
         hidden_size, use_peepholes=True, # allow implementation of LSTMP
@@ -442,14 +409,9 @@ def lstm(input_size, hidden_size, keep_prob, reuse):
         forget_bias=1.0, reuse=reuse)
     cell_dropout = tf.contrib.rnn.DropoutWrapper(
         cell,
-#         input_keep_prob=keep_prob, 
         output_keep_prob=keep_prob,
         variational_recurrent=True, input_size=input_size, dtype=tf.float32)
     return cell_dropout
-
-
-# In[18]:
-
 
 def create_placeholders(batch_size):
     input_seqs = tf.placeholder(
@@ -466,10 +428,6 @@ def create_placeholders(batch_size):
     return (input_seqs, input_seq_lengths, 
             target_seqs, target_seq_lengths,
             is_training)
-
-
-# In[19]:
-
 
 """
 Args:
@@ -512,10 +470,6 @@ def create_embedding(embedding_word2vec_politeness, embedding_word2vec_movie,
     
     return embedding
 
-
-# In[20]:
-
-
 def dynamic_lstm(cell, inputs, seq_lengths, initial_state, reuse=False):
     (outputs, final_state) = tf.nn.dynamic_rnn(
         cell,
@@ -526,10 +480,6 @@ def dynamic_lstm(cell, inputs, seq_lengths, initial_state, reuse=False):
         swap_memory=True,
         time_major=False)
     return (outputs, final_state)
-
-
-# In[21]:
-
 
 def bidirecitonal_dynamic_lstm(cell_fw, cell_bw, inputs, seq_lengths):
     (outputs, final_states) = tf.nn.bidirectional_dynamic_rnn(
@@ -558,10 +508,6 @@ def bidirecitonal_dynamic_lstm(cell_fw, cell_bw, inputs, seq_lengths):
             in zip(final_states_fw, final_states_bw)]
     return (outputs_concat, tuple(final_states_concat))
 
-
-# In[23]:
-
-
 def get_mask(seqs, indices):
     tensor = tf.convert_to_tensor(indices)
     bool_matrix = tf.equal(
@@ -569,10 +515,6 @@ def get_mask(seqs, indices):
         tf.reshape(tensor, [len(indices), 1, 1]))
     mask = tf.reduce_any(bool_matrix, axis=0)
     return mask
-
-
-# In[24]:
-
 
 """
 Copied from: https://github.com/tensorflow/tensorflow/blob/r0.7/tensorflow/models/image/cifar10/cifar10_multi_gpu_train.py
@@ -612,10 +554,6 @@ def average_gradients(tower_grads):
         average_grads.append(grad_and_var)
     return average_grads
 
-
-# In[25]:
-
-
 """
 Compute average gradients, perform gradient clipping and apply gradients
 Args:
@@ -636,10 +574,6 @@ def apply_grads(optimizer, tower_grads):
     apply_gradients_op = optimizer.apply_gradients(zip(clipped_gradients, variables))
 
     return apply_gradients_op
-
-
-# In[26]:
-
 
 def apply_multiple_grads(optimizer, tower_grads_lst):
     if tower_grads_lst == []:
@@ -670,10 +604,6 @@ def apply_multiple_grads(optimizer, tower_grads_lst):
     
     return apply_gradients_op
 
-
-# In[27]:
-
-
 def compute_grads(loss, optimizer, var_list=None):
     grads = optimizer.compute_gradients(loss, var_list=var_list)
     valid_grads = [
@@ -683,10 +613,6 @@ def compute_grads(loss, optimizer, var_list=None):
     if len(valid_grads) != len(var_list):
         print("Warning: some grads are None.")
     return valid_grads
-
-
-# In[28]:
-
 
 def attention(cell, memory, memory_seq_lengths):
     attention_mechanism = tf.contrib.seq2seq.BahdanauAttention(
@@ -700,10 +626,6 @@ def attention(cell, memory, memory_seq_lengths):
         output_attention=False) # behavior of BahdanauAttention
     return cell_attention
 
-
-# In[29]:
-
-
 def decode(cell, helper, initial_state):
     decoder = tf.contrib.seq2seq.BasicDecoder(
         cell, helper, initial_state)
@@ -711,10 +633,6 @@ def decode(cell, helper, initial_state):
         decoder, impute_finished=True,
         maximum_iterations=max_iterations, swap_memory=True)
     return (decoder_outputs, final_lengths)
-
-
-# In[60]:
-
 
 """
 Gather indices from an arbitrary dimension
@@ -726,19 +644,11 @@ def gather_axis(params, indices, axis=0):
     gathered_logits = tf.stack(gathered_logits_lst, axis=axis)
     return gathered_logits
 
-
-# In[31]:
-
-
 def filter_with_threshold(score):
     filtered_score = tf.cond(
         tf.logical_or(score <= threshold, score >= 1 - threshold),
         lambda: score, lambda: baseline)
     return filtered_score
-
-
-# In[32]:
-
 
 def get_bad_mask(seqs):
     bad_tensor = tf.convert_to_tensor(bad_indices)
@@ -749,20 +659,12 @@ def get_bad_mask(seqs):
         tf.reduce_any(bool_matrix, axis=0))
     return bad_mask
 
-
-# In[33]:
-
-
 def get_sequence_mask(seq_lengths, dtype=tf.bool):
     max_seq_length = tf.reduce_max(seq_lengths)
     sequence_mask = tf.sequence_mask(
         seq_lengths, maxlen=max_seq_length,
         dtype=dtype)
     return sequence_mask
-
-
-# In[34]:
-
 
 """
 Mask out invalid positions of 'tensor' and compute its softmax.
@@ -780,10 +682,6 @@ def softmax_with_mask(tensor, mask):
 
     return softmax_renorm_by_length
 
-
-# In[35]:
-
-
 def get_valid_mask(inputs):
     valid_mask = tf.cast(
         tf.logical_and(
@@ -791,10 +689,6 @@ def get_valid_mask(inputs):
             tf.not_equal(inputs, end_token)),
         tf.float32)
     return valid_mask
-
-
-# In[36]:
-
 
 def build_classifier(inputs, seq_lengths, reuse):
     
@@ -914,10 +808,6 @@ def build_classifier(inputs, seq_lengths, reuse):
 
     return (politeness_scores, stacked_credit_weigths)
 
-
-# In[37]:
-
-
 def pad_tensor(tensor, lengths):
     max_length = tf.reduce_max(lengths)
     padded = tf.pad(
@@ -925,10 +815,6 @@ def pad_tensor(tensor, lengths):
         [[0, 0], 
          [0, max_iterations - max_length]])
     return padded
-
-
-# In[38]:
-
 
 """
 Takes in a cell state and return its tiled version
@@ -950,16 +836,8 @@ def tile_single_cell_state(state):
             state.alignment_history)
     return None
 
-
-# In[39]:
-
-
 def tile_multi_cell_state(states):
     return tuple([tile_single_cell_state(state) for state in states])
-
-
-# In[40]:
-
 
 def pad_and_truncate(sample_ids, lengths):
     max_length = tf.reduce_max(lengths)
@@ -969,10 +847,6 @@ def pad_and_truncate(sample_ids, lengths):
           [0, max_iterations - max_length]])
     truncated_sample_ids = padded_sample_ids[:, :max_iterations] # truncate length
     return truncated_sample_ids
-
-
-# In[58]:
-
 
 def build_seq2seq(input_seqs, target_seqs, filtered_target_seqs,
                   input_seq_lengths, target_seq_lengths, 
@@ -1000,15 +874,6 @@ def build_seq2seq(input_seqs, target_seqs, filtered_target_seqs,
             decoder_mask = tf.logical_and(
                 sequence_mask, tf.logical_not(unk_mask))
             decoder_mask_float = tf.cast(decoder_mask, tf.float32)
-            
-#             if get_PPL:
-#                 # Filter target seqs
-#                 freq_mask = get_mask(target_seqs, vocab_freq_indices)
-#                 # Mark out the valid and frequent tokens
-#                 filtered_decoder_mask = tf.logical_and(
-#                     freq_mask, decoder_mask)
-#                 filtered_decoder_mask_float = tf.cast(
-#                     filtered_decoder_mask, tf.float32)
             
             # Embed inputs
             with tf.variable_scope("embedding"):
@@ -1107,18 +972,6 @@ def build_seq2seq(input_seqs, target_seqs, filtered_target_seqs,
                             tf.GraphKeys.TRAINABLE_VARIABLES, 
                             scope="seq2seq")
                     
-#                     if get_PPL:
-#                         # Gather logits 
-#                         gathered_logits = gather_axis(
-#                             logits, vocab_freq_indices, axis=-1)
-                    
-#                         loss_ML = tf.contrib.seq2seq.sequence_loss(
-#                             gathered_logits,
-#                             filtered_target_seqs[start:end, 1:target_max_seq_length], # get rid of start_token
-#                             filtered_decoder_mask_float[start:end, 1:target_max_seq_length])
-#                         num_tokens = tf.reduce_sum(
-#                             filtered_decoder_mask_float[start:end, 1:target_max_seq_length])
-#                     else:
                     loss_ML = tf.contrib.seq2seq.sequence_loss(
                         logits,
                         target_seqs[start:end, 1:target_max_seq_length], # get rid of start_token
@@ -1273,11 +1126,6 @@ def build_seq2seq(input_seqs, target_seqs, filtered_target_seqs,
             apply_gradients_op, credit_weights_RL_stop,
             embedding)
 
-
-# In[59]:
-
-
-tf.reset_default_graph()
 graph = tf.Graph()
 with graph.as_default():
     with tf.device('/cpu:0'):
@@ -1299,10 +1147,6 @@ with graph.as_default():
         input_seq_lengths, target_seq_lengths, 
         is_training)
 
-
-# In[ ]:
-
-
 with graph.as_default():    
     init = tf.global_variables_initializer()
     
@@ -1314,10 +1158,6 @@ with graph.as_default():
         var_list=tf.get_collection(
             tf.GraphKeys.TRAINABLE_VARIABLES, scope="seq2seq"))
 
-
-# In[ ]:
-
-
 """
 Speicify configurations of GPU
 """
@@ -1328,17 +1168,9 @@ def gpu_config():
     config.gpu_options.allocator_type = 'BFC'    
     return config
 
-
-# In[ ]:
-
-
 def avg(lst):
     avg = sum(lst) / len(lst)
     return avg
-
-
-# In[ ]:
-
 
 """
 Pad a batch to max_sequence_length along the second dimension
@@ -1355,10 +1187,6 @@ def pad(input_seqs, sequence_lengths):
               for (input_seq, sequence_length)
               in zip(input_seqs, sequence_lengths)]
     return padded
-
-
-# In[ ]:
-
 
 def run_seq2seq(sess, source_lst, target_lst, mode, epoch):
     assert len(source_lst) == len(target_lst)
@@ -1408,12 +1236,7 @@ def run_seq2seq(sess, source_lst, target_lst, mode, epoch):
             else:
                 fetches = [batch_total_loss, batch_num_tokens, apply_gradients_op]
             
-#             try:
             result = sess.run(fetches, feed_dict=feed_dict)
-#             except:
-#                 print(target)
-#                 print(i)
-#                 continue
             average_log_perplexity = result[0] / result[1]
             total_loss += result[0]
             total_num_tokens += result[1]
@@ -1443,10 +1266,6 @@ def run_seq2seq(sess, source_lst, target_lst, mode, epoch):
             print("Checkpoint saved for epoch %d." % epoch)
     else:
         return responses
-
-
-# In[ ]:
-
 
 num_epochs = total_epochs - start_epoch
 assert num_epochs >= 0

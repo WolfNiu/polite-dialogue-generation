@@ -1,9 +1,3 @@
-
-# coding: utf-8
-
-# In[2]:
-
-
 # Imports for compatibility between Python 2&3
 from __future__ import absolute_import
 from __future__ import division
@@ -221,10 +215,6 @@ def apply_grads(optimizer, tower_grads):
 
     return apply_gradients_op
 
-
-# In[ ]:
-
-
 def lstm(input_size, hidden_size, keep_prob, reuse):
     cell = tf.contrib.rnn.LSTMCell(
         hidden_size, use_peepholes=True, # allow implementation of LSTMP?
@@ -232,14 +222,9 @@ def lstm(input_size, hidden_size, keep_prob, reuse):
         forget_bias=1.0, reuse=reuse)
     cell_dropout = tf.contrib.rnn.DropoutWrapper(
         cell,
-#         input_keep_prob=keep_prob, 
         output_keep_prob=keep_prob,
         variational_recurrent=True, input_size=input_size, dtype=tf.float32)
     return cell_dropout
-
-
-# In[ ]:
-
 
 def get_keep_prob(dropout_rate, is_training):
     keep_prob = tf.cond(
@@ -248,12 +233,6 @@ def get_keep_prob(dropout_rate, is_training):
         lambda: tf.constant(1.0))
     return keep_prob
 
-
-# In[ ]:
-
-
-# Reset graph
-tf.reset_default_graph()
 graph = tf.Graph()
 
 with graph.as_default():
@@ -429,10 +408,6 @@ with graph.as_default():
             
 print("Done building graph.")
 
-
-# In[ ]:
-
-
 """
 Pad a batch to max_sequence_length along the second dimension
 Args:
@@ -523,18 +498,6 @@ def score(sess, checkpoint, sents, restore=False):
     
     print("Average score:", (sum(all_scores) / len(all_scores)))
 
-
-# In[ ]:
-
-
-"""
-Todo:
-• Should use emsemble model, because Jarafsky's model may predict correctly 
-    different requests than ours. The ensembled model, if making progress,
-    should be used to score the new corpora.
-• Modify the model to use attention instead of CNN for output layer.
-"""
-
 config = gpu_config()
 
 with tf.Session(graph=graph, config=config) as sess:
@@ -542,19 +505,6 @@ with tf.Session(graph=graph, config=config) as sess:
     if string_input:
         sess.run(tf.tables_initializer())
     print("Initialized all variables.")
-
-#     [requests_train, labels_train] = [
-#         (requests_train_WIKI + requests_train_SE),
-#         (labels_train_WIKI + labels_train_SE)]
-#     num_train_batches = num_train_batches_WIKI + num_train_batches_SE
-#     [requests_test, labels_test] = [
-#         (requests_test_WIKI + requests_test_SE),
-#         (labels_test_WIKI + labels_test_SE)]
-#     num_test_batches = num_test_batches_WIKI + num_test_batches_SE
-    
-#     all_requests = requests_WIKI + requests_SE
-#     all_labels = labels_WIKI + labels_SE
-    
     
     if is_test:
         saver.restore(sess, ckpt)
@@ -562,94 +512,13 @@ with tf.Session(graph=graph, config=config) as sess:
         run(sess, requests_test_WIKI, labels_test_WIKI,
             num_test_batches_WIKI, "test", 2, "WIKI")
         run(sess, requests_test_SE, labels_test_SE,
-            num_test_batches_SE, "test", 2, "SE")        
-
+            num_test_batches_SE, "test", 2, "SE")
     else:
         for i in xrange(num_epochs):
-    #         run(sess, requests_train, labels_train,
-    #             num_train_batches, "train", i, "WIKI+SE")
-    #         [requests_train, labels_train] = shuffle(requests_train, labels_train) # shuffle after each epoch
-    #         run(sess, requests_test_WIKI, labels_test_WIKI,
-    #             num_test_batches_WIKI, "test", i, "WIKI")
-    #         [requests_test_WIKI, labels_test_WIKI] = shuffle(requests_test_WIKI, labels_test_WIKI)
-    #         run(sess, requests_test_SE, labels_test_SE,
-    #             num_test_batches_SE, "test", i, "SE")
-    #         [requests_test_SE, labels_test_SE] = shuffle(requests_test_SE, labels_test_SE)
-
-    #     ckpt = data_path + "checkpoints/politeness_classifier_2"
-    #     score(sess, ckpt, sents, restore=True)
-
             run(sess, requests_train_WIKI, labels_train_WIKI,
                 num_train_batches_WIKI, "train", i, "WIKI")        
             run(sess, requests_test_WIKI, labels_test_WIKI,
                 num_test_batches_WIKI, "test", i, "WIKI")
-    #         run(sess, (requests_train_SE + requests_test_SE), (labels_train_SE + labels_test_SE),
-    #             (num_train_batches_SE + num_test_batches_SE), "test", i, "SE")
             run(sess, requests_test_SE, labels_test_SE,
-                num_test_batches_SE, "test", i, "SE")        
-
-#         run(sess, requests_train_SE, labels_train_SE,
-#             num_train_batches_SE, "train", i, "SE")        
-#         run(sess, requests_test_SE, labels_test_SE,
-#             num_test_batches_SE, "test", i, "SE")
-#         run(sess, (requests_train_WIKI + requests_test_WIKI), (labels_train_WIKI + labels_test_WIKI),
-#             (num_train_batches_WIKI + num_test_batches_WIKI), "test", i, "WIKI")
-
-        # Don't use this to test the classifier!!
-        # Only for scoring!!!
-#         run(sess, all_requests, all_labels,
-#             num_train_batches, "train", 300, "WIKI+SE")
-#         [all_requests, all_labels] = shuffle(all_requests, all_labels)
-#     (new_requests, new_labels) = score(
-#         sess, "checkpoints/multi_GPU_2",
-#         "movie_target", 
-#         movie_target, 
-#         source_lst=None, threshold=0.1, 
-#         write_file=False, restore=False)
-    
-#     print("Added %d examples!!" % len(new_requests))
-    
-#     new_requests_train = new_requests + requests_train
-#     new_labels_train = new_labels + labels_train
-#     new_num_train_batches = len(new_requests_train) // batch_size
-    
-#     run(sess, new_requests_train, new_labels_train,
-#         new_num_train_batches, "train", 100, "movie_target+WIKI+SE")
-#     run(sess, requests_test_WIKI, labels_test_WIKI,
-#         num_test_batches_WIKI, "test", 100, "WIKI")
-#     run(sess, requests_test_SE, labels_test_SE,
-#         num_test_batches_SE, "test", 100, "SE")
-
-#     run(sess, requests_train, labels_train,
-#         num_train_batches, "train", 200, "WIKI+SE")
-#     [requests_train, labels_train] = shuffle(requests_train, labels_train) # shuffle after each epoch
-#     run(sess, requests_test_WIKI, labels_test_WIKI,
-#         num_test_batches_WIKI, "test", 200, "WIKI")
-#     [requests_test_WIKI, labels_test_WIKI] = shuffle(requests_test_WIKI, labels_test_WIKI)
-#     run(sess, requests_test_SE, labels_test_SE,
-#         num_test_batches_SE, "test", 200, "SE")
-#     [requests_test_SE, labels_test_SE] = shuffle(requests_test_SE, labels_test_SE)
-
-    # Scoring all datasets that will be put into polite list  
-#     score(sess, "checkpoints/multi_GPU_300",
-#           "movie_target", 
-#           movie_target, 
-#           source_lst=movie_source, threshold=0.2, 
-#           write_file=True, restore=True)
-#     score(sess, "checkpoints/multi_GPU_300",
-#           "movie",
-#           movie_target, 
-#           source_lst=None, threshold=1/3, 
-#           write_file=True, restore=True)
-
-#     score(sess, "checkpoints/multi_GPU_300",
-#           "unlabeled_WIKI", 
-#           unlabeled_requests_WIKI, 
-#           source_lst=None, threshold=0.2, 
-#           write_file=True, restore=True)
-#     score(sess, "checkpoints/multi_GPU_300",
-#           "unlabeled_SE", 
-#           unlabeled_requests_SE, 
-#           source_lst=None, threshold=0.2, 
-#           write_file=True, restore=True)
+                num_test_batches_SE, "test", i, "SE")
 

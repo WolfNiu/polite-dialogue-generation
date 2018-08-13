@@ -1,9 +1,3 @@
-
-# coding: utf-8
-
-# In[1]:
-
-
 """
 code requires that GoogleNews-vectors-negative300.bin is in the same directory
 This code goes over the first pass, performing two things:

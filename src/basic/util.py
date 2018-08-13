@@ -1,9 +1,3 @@
-
-# coding: utf-8
-
-# In[1]:
-
-
 # Imports for compatibility between Python 2&3
 from __future__ import absolute_import
 from __future__ import division
@@ -22,9 +16,6 @@ from gensim.models import KeyedVectors
 import itertools
 
 
-# In[1]:
-
-
 def split_lst(lst, delimiter, keep_delimiter=True):
     """
     Split list into sublists based on a delimiter
@@ -38,9 +29,6 @@ def split_lst(lst, delimiter, keep_delimiter=True):
                 in itertools.groupby(lst, lambda z: z == delimiter) 
                 if not x]
     return sublists
-
-
-# In[ ]:
 
 
 def build_dict(lst1, lst2=[]):
@@ -64,19 +52,12 @@ def build_dict(lst1, lst2=[]):
         
     return (key2val, val2key)
 
-
-# In[2]:
-
-
 def build_index2token(lst, reverse=False):
     if reverse:
         dictionary = {val: i for (i, val) in enumerate(lst)}
     else:
         dictionary = {i: val for (i, val) in enumerate(lst)}
     return dictionary
-
-
-# In[3]:
 
 
 def have_duplicates(lst):
@@ -86,15 +67,9 @@ def have_duplicates(lst):
     return len(set(lst)) < len(lst)
 
 
-# In[4]:
-
-
 def exists(path):
     fp = Path(path)
     return fp.is_file()
-
-
-# In[5]:
 
 
 def load_word2vec_model():
@@ -107,9 +82,6 @@ def load_word2vec_model():
     model_path = '/playpen/home/tongn/GoogleNews-vectors-negative300.bin'
     model = KeyedVectors.load_word2vec_format(fname=model_path, binary=True)
     return model
-
-
-# In[6]:
 
 
 def pad(input_seqs, sequence_lengths, pad_token=0, pad_len=None):
@@ -132,10 +104,6 @@ def pad(input_seqs, sequence_lengths, pad_token=0, pad_len=None):
               in zip(input_seqs, sequence_lengths)]
     return padded
 
-
-# In[7]:
-
-
 def unzip_lst(lst):
     """
     unzip a list of tuples/lists to multiple lists
@@ -152,10 +120,6 @@ def zip_lsts(lsts):
     assert len(list(set(lengths))) == 1 # assert that the lsts have the same lengths
     zipped_lst = [list(tp) for tp in list(zip(*lsts))]
     return zipped_lst
-
-
-# In[8]:
-
 
 def load_pickle(filename):
     with open(filename, "rb") as fp:
@@ -178,10 +142,6 @@ def dump_pickles(filenames, lsts):
     for (filename, lst) in zip(filenames, lsts):
         dump_pickle(filename, lst)
 
-
-# In[9]:
-
-
 def read_lines(filename, verbose=True):
     """
     Load a file line by line into a list
@@ -203,24 +163,12 @@ def write_lines(filename, lines, verbose=True):
     if verbose:
         print("Done writing to file %s." % filename)
 
-
-# In[10]:
-
-
 def last_occurance_index(string, char):
     return string.rfind(char)
-
-
-# In[11]:
-
 
 def exists(path):
     fp = Path(path)
     return fp.is_file()
-
-
-# In[12]:
-
 
 def read_jsonl(path):
     data = []
@@ -230,16 +178,8 @@ def read_jsonl(path):
     print("Done reading", path)
     return data
 
-
-# In[13]:
-
-
 def tokenize(sent):
     return (word_tokenize(sent))
-
-
-# In[14]:
-
 
 def prepend(sents, token_index):
     assert [] not in sents # verify that there is no empty list in "sents"
@@ -252,10 +192,6 @@ def append(sents, token_index):
     assert isinstance(sents[0], list)
     appended = [sent + [token_index] for sent in sents]
     return appended
-
-
-# In[15]:
-
 
 def decode2string(index2token, indices, end_token="END_TOKEN", remove_END_TOKEN=False):
     """
@@ -278,20 +214,12 @@ def decode2string(index2token, indices, end_token="END_TOKEN", remove_END_TOKEN=
             break
     return (' ').join(decoded)
 
-
-# In[16]:
-
-
 def group_lst(lst, num_grouped):
     num_elements = len(lst)
     num_groups = num_elements // num_grouped
     truncated_lst = lst[:(num_grouped * num_groups)]
     return [truncated_lst[i: (i + num_grouped)] 
             for i in xrange(0, num_elements, num_grouped)]
-
-
-# In[17]:
-
 
 def shuffle(lst1, lst2):
     """
@@ -306,10 +234,6 @@ def shuffle(lst1, lst2):
     np.random.shuffle(combined)
     (shuffled_lst1, shuffled_lst2) = zip(*combined)
     return [list(shuffled_lst1), list(shuffled_lst2)]
-
-
-# In[ ]:
-
 
 def remove_duplicates(lst):
     """

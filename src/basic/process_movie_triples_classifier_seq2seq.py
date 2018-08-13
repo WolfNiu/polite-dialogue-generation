@@ -1,16 +1,3 @@
-
-# coding: utf-8
-
-# In[4]:
-
-
-"""
-Add in a list,
-it has indicies for each example in the test set (test set is always ordered)
-if it is X-Y, then [X] is stored as list element
-if it is X-Y-X, then [X, Y] is stored as list element
-"""
-
 import numpy as np
 import csv
 import pickle
@@ -41,12 +28,9 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-
-
 args = parse_args()
 data_path = args.data_path
 word2vec = args.word2vec
-
 
 
 """
@@ -157,18 +141,9 @@ print("Lower target length threshold: %d" % lower_threshold_target)
 print("Upper target length threshold: %d" % upper_threshold_target)
 
 
-# force:
 (lower_threshold_target, upper_threshold_target) = (5, 32)
 
-
-# In[10]:
-
-
 end_token = "END_TOKEN"
-
-
-# In[11]:
-
 
 truncated_datasets = []
 source_test_text = []
@@ -197,31 +172,16 @@ for (i, dataset) in enumerate(datasets):
 
     truncated_datasets.append([source_lst, target_lst])
 
-
-# In[12]:
-
-
 print(len(datasets[0]), len(truncated_datasets[0][0]))
-
-
-# In[13]:
-
 
 source_test_text_file = target_path + "source_test_text.txt"
 write_lines(source_test_text_file, source_test_text)
-
-
-# In[ ]:
-
 
 # Load word embedding model
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 # model_path = './GoogleNews-vectors-negative300.bin'
 # model = KeyedVectors.load_word2vec_format(fname=model_path, binary=True)
 model = KeyedVectors.load_word2vec_format(fname=word2vec, binary=True)
-
-
-# In[ ]:
 
 
 """
@@ -288,18 +248,10 @@ print("Politeness vocab size: %d" % len(vocab_politeness))
 print("Newly added movie vocab size: %d" % len(vocab_movie))
 print("Total vocab size: %d" % len(vocab_all))
 
-
-# In[ ]:
-
-
 """
 Obtain the reduced word2vec embedding matrix
 """
 embedding_word2vec_movie = model[shared_vocab_movie]
-
-
-# In[ ]:
-
 
 """
 Create dictionaries between indices and tokens
@@ -307,20 +259,11 @@ Create dictionaries between indices and tokens
 index2token = {i: token for (i, token) in enumerate(vocab_all)}
 token2index = {token: i for (i, token) in enumerate(vocab_all)}
 
-
-# In[ ]:
-
-
 def replace_with_index(token, vocab, dictionary):
-#     if token in vocab:
     try:
         return dictionary[token]
-#     else:
     except:
         return dictionary["UNK_TOKEN"]
-
-
-# In[ ]:
 
 
 indexed_datasets = [
@@ -329,10 +272,6 @@ indexed_datasets = [
       for turn in lst]
      for lst in dataset]
     for dataset in truncated_datasets]
-
-
-# In[ ]:
-
 
 lsts = [
     vocab_all,
@@ -360,38 +299,8 @@ pickle_lst = [
     "embedding_word2vec_movie"
 ]
 
-# data_path = "/usr/xtmp/tn9td/vocab/preprocessing/"
 pickle_files = [
-#     os.path.join(data_path, file + ".pkl")
     os.path.join(target_path, file + ".pkl")
     for file in pickle_lst]
 
 dump_pickles(pickle_files, lsts)
-
-
-# In[14]:
-
-
-# vocab_all = load_pickle(target_path + "vocab_all.pkl")
-
-# """
-# Create dictionaries between indices and tokens
-# """
-# index2token = {i: token for (i, token) in enumerate(vocab_all)}
-# token2index = {token: i for (i, token) in enumerate(vocab_all)}
-
-
-# pkl = load_pickle(target_path + "movie_test_source.pkl")
-# txt = read_lines(target_path + "source_test_text.txt")
-
-# grouped_txt = group_lst(txt, 2)
-
-# print(len(pkl))
-# print(len(grouped_txt))
-
-# assert(len(pkl) == len(grouped_txt))
-
-# text_dict = {decode2string(index2token, p[:(-1)]): t # -1 to remove the last END_TOKEN
-#              for (p, t) in zip(pkl, grouped_txt)}
-# dump_pickle(target_path + "test_dict.pkl", text_dict)
-

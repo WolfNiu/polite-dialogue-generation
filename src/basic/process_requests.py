@@ -76,10 +76,6 @@ tokenized_datasets_original_tweet = [
      for request in dataset]
     for dataset in datasets]
 
-
-# In[ ]:
-
-
 print("Retokenizing with Stanford tokenizer. This may take a long time.")
 
 path_pos = "/playpen/home/tongn/stanford-postagger-full-2017-06-09/"
@@ -92,7 +88,6 @@ tokenized_datasets_original = [
     [tokenizer.tokenize(' '.join(request).strip())
      for request in dataset]
     for dataset in tokenized_datasets_original_tweet]
-# tokenized_datasets_original = tokenized_datasets_original_tweet
 
 """
 Convert all tokens to lowercase
@@ -102,17 +97,12 @@ tokenized_datasets = [
       for token in request]
      for request in dataset]
     for dataset in tokenized_datasets_original]
-# tokenized_datasets = tokenized_datasets_original
-
 
 # Load word embedding model
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 # model_path = path + 'GoogleNews-vectors-negative300.bin'
 model_path = word2vec
 model = KeyedVectors.load_word2vec_format(fname=model_path, binary=True)
-
-
-# In[ ]:
 
 
 """
@@ -148,10 +138,6 @@ vocab_politeness = [UNK] + vocab_new + vocab_shared
 print("Shared vocab size: %d" % len(vocab_shared))
 print("New vocab size: %d" % len(vocab_new))
 
-
-# In[ ]:
-
-
 """
 Obtain the reduced word2vec embedding matrix
 """
@@ -162,10 +148,6 @@ Create dictionaries between indices and tokens
 """
 index2token = {i: token for (i, token) in enumerate(vocab_politeness)}
 token2index = {token: i for (i, token) in enumerate(vocab_politeness)}
-
-
-# In[ ]:
-
 
 """
 Replace a token with its index in the vocab
@@ -182,18 +164,12 @@ def replace_with_index(token):
         return index_UNK
 
 
-# In[ ]:
-
-
 print("Start indexing dataset... This may take a while")
 indexed_datasets = [
     [[replace_with_index(token)
       for token in request]
      for request in dataset]
     for dataset in tokenized_datasets]
-
-
-# In[ ]:
 
 
 """

@@ -57,7 +57,6 @@ reorganize = False
 gpu configurations
 """
 batch_size = 96
-# num_gpus = 8
 num_gpus = 1
 assert batch_size % num_gpus == 0
 batch_size_per_gpu = batch_size // num_gpus
@@ -66,9 +65,6 @@ batch_size_per_gpu = batch_size // num_gpus
 """
 Load pickled lists
 """
-
-data_path = "/usr/xtmp/tn9td/vocab/preprocessing/"
-
 filenames = [
     "vocab_all.pkl",
     "shared_vocab_politeness.pkl", "shared_vocab_movie.pkl",
@@ -98,25 +94,13 @@ target_test = data[12]
 triple_lsts = data[13:]
 
 
-# In[9]:
-
-
 def zip_remove_duplicates_unzip(lsts):
     zipped = zip_lsts(lsts)
     zipped_without_duplicates = remove_duplicates(zipped)
     unzipped = unzip_lst(zipped_without_duplicates)
     return unzipped
 
-
-# In[10]:
-
-
 [source_train, target_train] = zip_remove_duplicates_unzip([source_train, target_train])
-# [source_test, target_test] = zip_remove_duplicates_unzip([source_test, target_test])
-
-
-# In[11]:
-
 
 shared_vocab_size_politeness = len(shared_vocab_politeness)
 shared_vocab_size_movie = len(shared_vocab_movie)
@@ -143,33 +127,13 @@ new_vocab_size_movie = len(new_vocab_movie)
 assert (1 + shared_vocab_size_politeness + new_vocab_size_politeness # +1 for "UNK"
         + shared_vocab_size_movie + new_vocab_size_movie) == vocab_size
 
-
-# In[12]:
-
-
 tags = ["<person>", "<number>", "<continued_utterance>"]
 
 ner_tokens = [token2index[token] for token in tags]
 unk_indices = [unk_token, ner_tokens[2]]
 
-
-# In[13]:
-
-
-bad_words = read_lines(
-    "/usr/project/xtmp/tn9td/vocab/swear_words_wikitionary.txt")
-bad_indices = [token2index[word] 
-               for word in bad_words 
-               if word in vocab]
-good_words = read_lines(
-    "/usr/project/xtmp/tn9td/vocab/polite_words.txt")
-good_indices = [token2index[word] 
-               for word in good_words 
-               if word in vocab]
-
-
-# In[14]:
-
+bad_indices = []
+good_indices = []
 
 def split_triple_lst(triple_lst, indices):
     popped_indices = [i for (i, triple) 
@@ -182,20 +146,7 @@ def split_triple_lst(triple_lst, indices):
     assert len(kept_lst) + len(popped_lst) == len(triple_lst)
     return (kept_lst, popped_lst)
 
-
-# In[15]:
-
-
 print([len(triple_lst) for triple_lst in triple_lsts])
-
-
-# In[16]:
-
-
-"""
-Before reorganizing: [40390, 176317, 64253]
-After reorganizing: [80287, 145321, 55352]
-"""
 
 if reorganize:
     (polite_kept_lst, polite_popped_lst) = split_triple_lst(triple_lsts[0], bad_indices)
@@ -214,34 +165,10 @@ if reorganize:
     print([len(triple_lst) for triple_lst in triple_lsts])
 
 
-# In[17]:
-
-
 if reorganize:
     # Store reorganized utterances
     for (filename, triple_lst) in zip(filenames[13:], triple_lsts):
         dump_pickle(data_path + filename, triple_lst)
-
-
-# In[18]:
-
-
-len(load_pickle("/usr/xtmp/tn9td/vocab/preprocessing/polite_movie_target.pkl"))
-
-
-# In[ ]:
-
-
-# """
-# Randomly sample "num_polite" number of neutral examples
-# """
-# num_polite = len(triple_lsts[0])
-# np.random.shuffle(triple_lsts[1])
-# triple_lsts[1] = triple_lsts[1][:num_polite]
-
-
-# In[ ]:
-
 
 unzipped_triples = [unzip_lst(triple_lst) for triple_lst in triple_lsts]
 [[polite_sources, polite_targets, _],
@@ -264,9 +191,6 @@ labeled_target_train = polite_targets + neutral_targets + rude_targets
 source_test_polite = prepend(source_test, polite_label)
 source_test_neutral = prepend(source_test, neutral_label)
 source_test_rude = prepend(source_test, rude_label)
-
-
-# In[1]:
 
 
 """
@@ -313,20 +237,12 @@ def get_keep_prob(dropout_rate, is_training):
         lambda: tf.constant(1.0))
     return keep_prob
 
-
-# In[ ]:
-
-
 def dropout(cell, keep_prob, input_size):
     cell_dropout = tf.contrib.rnn.DropoutWrapper(
         cell,
         output_keep_prob=keep_prob,
         variational_recurrent=True, dtype=tf.float32)        
     return cell_dropout
-
-
-# In[ ]:
-
 
 def create_cell(input_size, hidden_size, keep_prob, num_proj=None, 
                 memory=None, memory_seq_lengths=None, reuse=False):
@@ -344,22 +260,18 @@ def create_cell(input_size, hidden_size, keep_prob, num_proj=None,
         cell = tf.contrib.rnn.OutputProjectionWrapper(cell, num_proj)
     return cell
 
-
-# In[ ]:
-
-
-"""
-Only the last layer has projection and attention
-
-Args:
-    hidden_sizes: a list of hidden sizes for each layer
-    num_proj: the projection size
-Returns:
-    A cell or a wrapped rnn cell
-"""
 def create_MultiRNNCell(hidden_sizes, keep_prob, num_proj=None, 
                         memory=None, memory_seq_lengths=None, 
                         reuse=False):
+    """
+    Only the last layer has projection and attention
+
+    Args:
+        hidden_sizes: a list of hidden sizes for each layer
+        num_proj: the projection size
+    Returns:
+        A cell or a wrapped rnn cell
+    """
     assert len(hidden_sizes) > 0
     
     if len(hidden_sizes) == 1:
@@ -393,11 +305,7 @@ def create_MultiRNNCell(hidden_sizes, keep_prob, num_proj=None,
             in zip(hidden_sizes[0:(-2)], hidden_sizes[1:(-1)])]
         return tf.contrib.rnn.MultiRNNCell(
             [cell_first] + cells_in_between + [cell_last])
-
-
-# In[ ]:
-
-
+    
 def lstm(input_size, hidden_size, keep_prob, reuse):
     cell = tf.contrib.rnn.LSTMCell(
         hidden_size, use_peepholes=True, # allow implementation of LSTMP
@@ -405,14 +313,9 @@ def lstm(input_size, hidden_size, keep_prob, reuse):
         forget_bias=1.0, reuse=reuse)
     cell_dropout = tf.contrib.rnn.DropoutWrapper(
         cell,
-#         input_keep_prob=keep_prob, 
         output_keep_prob=keep_prob,
         variational_recurrent=True, input_size=input_size, dtype=tf.float32)
     return cell_dropout
-
-
-# In[ ]:
-
 
 def create_placeholders(batch_size):
     input_seqs = tf.placeholder(
@@ -429,10 +332,6 @@ def create_placeholders(batch_size):
     return (input_seqs, input_seq_lengths, 
             target_seqs, target_seq_lengths,
             is_training)
-
-
-# In[ ]:
-
 
 def create_embedding(embedding_word2vec_politeness, embedding_word2vec_movie,
                      shared_vocab_size_politeness, shared_vocab_size_movie,
@@ -470,10 +369,6 @@ def create_embedding(embedding_word2vec_politeness, embedding_word2vec_movie,
     
     return embedding
 
-
-# In[ ]:
-
-
 def dynamic_lstm(cell, inputs, seq_lengths, initial_state, reuse=False):
     (outputs, final_state) = tf.nn.dynamic_rnn(
         cell,
@@ -484,10 +379,6 @@ def dynamic_lstm(cell, inputs, seq_lengths, initial_state, reuse=False):
         swap_memory=True,
         time_major=False)
     return (outputs, final_state)
-
-
-# In[ ]:
-
 
 def bidirecitonal_dynamic_lstm(cell_fw, cell_bw, inputs, seq_lengths):
     (outputs, final_states) = tf.nn.bidirectional_dynamic_rnn(
@@ -515,10 +406,6 @@ def bidirecitonal_dynamic_lstm(cell_fw, cell_bw, inputs, seq_lengths):
             for (final_state_fw, final_state_bw)
             in zip(final_states_fw, final_states_bw)]
     return (outputs_concat, tuple(final_states_concat))
-
-
-# In[ ]:
-
 
 """
 Copied from: https://github.com/tensorflow/tensorflow/blob/r0.7/tensorflow/models/image/cifar10/cifar10_multi_gpu_train.py
@@ -558,10 +445,6 @@ def average_gradients(tower_grads):
         average_grads.append(grad_and_var)
     return average_grads
 
-
-# In[ ]:
-
-
 """
 Compute average gradients, perform gradient clipping and apply gradients
 Args:
@@ -582,10 +465,6 @@ def apply_grads(optimizer, tower_grads):
     apply_gradients_op = optimizer.apply_gradients(zip(clipped_gradients, variables))
 
     return apply_gradients_op
-
-
-# In[ ]:
-
 
 def apply_multiple_grads(optimizer, tower_grads_lst):
     if tower_grads_lst == []:
@@ -617,9 +496,6 @@ def apply_multiple_grads(optimizer, tower_grads_lst):
     return apply_gradients_op
 
 
-# In[ ]:
-
-
 def compute_grads(loss, optimizer, var_list=None):
     grads = optimizer.compute_gradients(loss, var_list=var_list)
     valid_grads = [
@@ -629,10 +505,6 @@ def compute_grads(loss, optimizer, var_list=None):
     if len(valid_grads) != len(var_list):
         print("Warning: some grads are None.")
     return valid_grads
-
-
-# In[ ]:
-
 
 def attention(cell, memory, memory_seq_lengths):
     attention_mechanism = tf.contrib.seq2seq.BahdanauAttention(
@@ -646,10 +518,6 @@ def attention(cell, memory, memory_seq_lengths):
         output_attention=False)# behavior of BahdanauAttention
     return cell_attention
 
-
-# In[ ]:
-
-
 def decode(cell, helper, initial_state):
     decoder = tf.contrib.seq2seq.BasicDecoder(
         cell, helper, initial_state)
@@ -657,10 +525,6 @@ def decode(cell, helper, initial_state):
         decoder, impute_finished=True,
         maximum_iterations=max_iterations, swap_memory=True)
     return (decoder_outputs, final_lengths)
-
-
-# In[ ]:
-
 
 def get_bad_mask(seqs):
     bad_tensor = tf.convert_to_tensor(bad_indices)
@@ -670,10 +534,6 @@ def get_bad_mask(seqs):
     bad_mask = tf.logical_not(
         tf.reduce_any(bool_matrix, axis=0))
     return bad_mask
-
-
-# In[ ]:
-
 
 """
 returns:
@@ -701,10 +561,6 @@ def get_sequence_mask(seq_lengths, dtype=tf.bool):
         dtype=dtype)
     return sequence_mask
 
-
-# In[30]:
-
-
 """
 Calculate single reference BLEU 
 with both input and output being numpy arrays
@@ -731,10 +587,6 @@ def calculate_BLEU(reference, hypothesis, n=2):
         dtype=np.float32)
     return score
 
-
-# In[31]:
-
-
 def calculate_BLEUs(reference, reference_lengths,
                     hypothesis, hypothesis_lengths):
     ref_lengths = reference_lengths.tolist()
@@ -747,20 +599,12 @@ def calculate_BLEUs(reference, reference_lengths,
     stacked_scores = np.stack(scores, axis=0)
     return stacked_scores
 
-
-# In[ ]:
-
-
 def get_BLEUs(refs, ref_lengths, hyps, hyp_lenghts):
     BLEUs = tf.py_func(
         calculate_BLEUs,
         [refs, ref_lengths, hyps, hyp_lenghts],
         tf.float32, stateful=False)
     return BLEUs
-
-
-# In[2]:
-
 
 def get_valid_mask(inputs):
     valid_mask = tf.cast(
@@ -770,10 +614,6 @@ def get_valid_mask(inputs):
         tf.float32)
     return valid_mask
 
-
-# In[ ]:
-
-
 def pad_tensor(tensor, lengths):
     max_length = tf.reduce_max(lengths)
     padded = tf.pad(
@@ -781,10 +621,6 @@ def pad_tensor(tensor, lengths):
         [[0, 0], 
          [0, max_iterations - max_length]])
     return padded
-
-
-# In[ ]:
-
 
 """
 Takes in a cell state and return its tiled version
@@ -806,15 +642,8 @@ def tile_single_cell_state(state):
             state.alignment_history)
     return None
 
-
-# In[ ]:
-
-
 def tile_multi_cell_state(states):
     return tuple([tile_single_cell_state(state) for state in states])
-
-
-# In[ ]:
 
 
 def get_saver(var_scope=None):
@@ -822,22 +651,6 @@ def get_saver(var_scope=None):
         var_list=tf.get_collection(
             tf.GraphKeys.TRAINABLE_VARIABLES, scope=var_scope))
     return saver
-
-
-# In[ ]:
-
-
-"""
-To train with both politeness score and BLEU, 
-we need to run the decoder three times for each example during training
-1. feed each step with ground truth --> loss_ML
-2. sampling for each step for computing loss_polite and loss_BLEU
-3. argmax each step to get baseline for BLEU RL training
-
-Classifier gives:
-1. politeness score for each sampled sentence
-2. (optional) first derivative saliency
-"""
 
 
 def build_seq2seq(input_seqs, target_seqs, 
@@ -1007,10 +820,6 @@ def build_seq2seq(input_seqs, target_seqs,
     return (batch_sample_ids, batch_final_lengths, 
             avg_loss_ML, apply_gradients_op)
 
-
-# In[ ]:
-
-
 tf.reset_default_graph()
 graph = tf.Graph()
 with graph.as_default():
@@ -1026,17 +835,9 @@ with graph.as_default():
         input_seq_lengths, target_seq_lengths, 
         is_training)
 
-
-# In[ ]:
-
-
 with graph.as_default():    
     init = tf.global_variables_initializer()
     saver = get_saver()
-
-
-# In[ ]:
-
 
 """
 Speicify configurations of GPU
@@ -1048,17 +849,9 @@ def gpu_config():
     config.gpu_options.allocator_type = 'BFC'    
     return config
 
-
-# In[ ]:
-
-
 def avg(lst):
     avg = sum(lst) / len(lst)
     return avg
-
-
-# In[ ]:
-
 
 """
 Pad a batch to max_sequence_length along the second dimension
@@ -1075,10 +868,6 @@ def pad(input_seqs, sequence_lengths):
               for (input_seq, sequence_length)
               in zip(input_seqs, sequence_lengths)]
     return padded
-
-
-# In[ ]:
-
 
 def run_seq2seq(sess, source_lst, target_lst, mode, epoch):
     assert len(source_lst) == len(target_lst)
@@ -1142,10 +931,6 @@ def run_seq2seq(sess, source_lst, target_lst, mode, epoch):
     else:
         return responses
 
-
-# In[ ]:
-
-
 num_epochs = total_epochs - start_epoch
 
 config = gpu_config()    
@@ -1161,26 +946,7 @@ with tf.Session(graph=graph, config=config) as sess:
         saver.restore(sess, restore_ckpt)
         print("Restored checkpoint %s." % restore_ckpt)
 
-#     polite_responses = run_seq2seq(
-#         sess, source_test_polite, target_test, "test", start_epoch - 1)  
-
-#     dump_pickle(data_path + "LFT_%d_infer_indexed.pkl" % (start_epoch - 1), polite_responses)
-        
-#     polite_responses = run_seq2seq(
-#         sess, source_test_polite, target_test, "test", start_epoch - 1)
-    
-#     dump_pickle(
-#         "/usr/project/xtmp/tn9td/vocab/LFT_%d_infer.pkl" % (start_epoch - 1),
-#         polite_responses)
-    
     for i in xrange(num_epochs):
-#         # First test if the checkpoint already exists
-#         ckpt = "%sLFT_%d" % (data_path, i + start_epoch)
-#         fp = Path(ckpt)
-#         if fp.is_file():
-#             saver.restore(sess, ckpt)
-#             continue
-    
         (labeled_source_train, labeled_target_train) = shuffle(
             labeled_source_train, labeled_target_train)
         

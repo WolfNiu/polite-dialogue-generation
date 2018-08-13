@@ -37,14 +37,15 @@ def zip_remove_duplicates_unzip(lsts):
     unzipped = unzip_lst(zipped_without_duplicates)
     return unzipped
 
+args = parse_args()
 
 """
 Load pickled lists
 """
 current_dir = os.getcwd()
 
-data_path = "/usr/xtmp/tn9td/vocab/preprocessing/"
-restore_path = "/usr/xtmp/tn9td/vocab/preprocessing/"
+data_path = "../data/"
+restore_path = args.ckpt_generator
 
 filenames = [
     "vocab_all.pkl",
@@ -72,7 +73,6 @@ target_train = data[6] + data[8]
 assert len(source_train) == len(target_train)
 source_test = data[9]
 target_test = data[10]
-# [source_test, target_test] = zip_remove_duplicates_unzip([source_test, target_test])
 assert len(source_test) == len(target_test)
 embedding_word2vec_politeness = data[11]
 embedding_word2vec_movie = data[12]
@@ -80,12 +80,8 @@ embedding_word2vec_movie = data[12]
 # Load all the polite utterances
 polite_lst = remove_duplicates(
     unzip_lst(
-        load_pickle("/usr/project/xtmp/tn9td/vocab/preprocessing/polite_movie_target.pkl"))[0])
+        load_pickle("../data/polite_movie_target.pkl"))[0])
 print("Loaded %d polite examples!" % len(polite_lst))
-
-
-# In[4]:
-
 
 shared_vocab_size_politeness = len(shared_vocab_politeness)
 shared_vocab_size_movie = len(shared_vocab_movie)
@@ -106,34 +102,14 @@ assert (shared_vocab_size_politeness + new_vocab_size_politeness + 1
 
 vocab_size_politeness = 1 + shared_vocab_size_politeness + new_vocab_size_politeness
 
-
-# In[ ]:
-
-
 tags = ["<person>", "<number>", "<continued_utterance>"]
 ner_tokens = [token2index[token] for token in tags]
 unk_indices = [unk_token, ner_tokens[2]]
 
 
-# In[ ]:
-
-
-bad_words = read_lines("/usr/project/xtmp/tn9td/vocab/swear_words_wikitionary.txt")
-bad_indices = [token2index[word] 
-               for word in bad_words 
-               if word in vocab]
-
-
-# In[ ]:
-
-
 [polite_lst, target_train] = [
     append(prepend(lst, start_token), end_token) 
     for lst in [polite_lst, target_train]]
-
-
-# In[ ]:
-
 
 """
 flags
@@ -193,20 +169,12 @@ def get_keep_prob(dropout_rate, is_training):
         lambda: tf.constant(1.0))
     return keep_prob
 
-
-# In[ ]:
-
-
 def dropout(cell, keep_prob, input_size):
     cell_dropout = tf.contrib.rnn.DropoutWrapper(
         cell,
         output_keep_prob=keep_prob,
         variational_recurrent=True, dtype=tf.float32)        
     return cell_dropout
-
-
-# In[ ]:
-
 
 def create_cell(input_size, hidden_size, keep_prob, num_proj=None, 
                 memory=None, memory_seq_lengths=None, reuse=False):
@@ -223,10 +191,6 @@ def create_cell(input_size, hidden_size, keep_prob, num_proj=None,
     if num_proj is not None:
         cell = tf.contrib.rnn.OutputProjectionWrapper(cell, num_proj)
     return cell
-
-
-# In[ ]:
-
 
 """
 Only the last layer has projection and attention
@@ -274,24 +238,20 @@ def create_MultiRNNCell(hidden_sizes, keep_prob, num_proj=None,
         return tf.contrib.rnn.MultiRNNCell(
             [cell_first] + cells_in_between + [cell_last])
 
-
-# In[ ]:
-
-
-"""
-Copied from: https://github.com/tensorflow/tensorflow/blob/r0.7/tensorflow/models/image/cifar10/cifar10_multi_gpu_train.py
-
-Calculate the average gradient for each shared variable across all towers.
-Note that this function provides a synchronization point across all towers.
-Args:
-    tower_grads: List of lists of (gradient, variable) tuples. 
-        The outer list is over individual gradients. 
-        The inner list is over the gradient calculation for each tower.
-Returns:
-    List of pairs of (gradient, variable) where the gradient has been 
-    averaged across all towers.
-"""
 def average_gradients(tower_grads):
+    """
+    Copied from: https://github.com/tensorflow/tensorflow/blob/r0.7/tensorflow/models/image/cifar10/cifar10_multi_gpu_train.py
+
+    Calculate the average gradient for each shared variable across all towers.
+    Note that this function provides a synchronization point across all towers.
+    Args:
+        tower_grads: List of lists of (gradient, variable) tuples. 
+            The outer list is over individual gradients. 
+            The inner list is over the gradient calculation for each tower.
+    Returns:
+        List of pairs of (gradient, variable) where the gradient has been 
+        averaged across all towers.
+    """
     average_grads = []
     for grad_and_vars in zip(*tower_grads):
         # Note that each grad_and_vars looks like the following:
@@ -315,10 +275,6 @@ def average_gradients(tower_grads):
         grad_and_var = (grad, v)
         average_grads.append(grad_and_var)
     return average_grads
-
-
-# In[ ]:
-
 
 def create_placeholders():
     input_seqs = tf.placeholder(
@@ -361,10 +317,6 @@ def create_placeholders():
             initial_states, is_training,
             fusion_ratio)
 
-
-# In[ ]:
-
-
 def get_bad_mask(seqs):
     bad_tensor = tf.convert_to_tensor(bad_indices)
     bool_matrix = tf.equal(
@@ -373,10 +325,6 @@ def get_bad_mask(seqs):
     bad_mask = tf.logical_not(
         tf.reduce_any(bool_matrix, axis=0))
     return bad_mask
-
-
-# In[ ]:
-
 
 """
 Args:
@@ -419,10 +367,6 @@ def create_embedding(embedding_word2vec_politeness, embedding_word2vec_movie,
     
     return embedding
 
-
-# In[ ]:
-
-
 def dynamic_lstm(cell, inputs, seq_lengths, initial_state, reuse=False):
     (outputs, final_state) = tf.nn.dynamic_rnn(
         cell,
@@ -433,10 +377,6 @@ def dynamic_lstm(cell, inputs, seq_lengths, initial_state, reuse=False):
         swap_memory=True,
         time_major=False)
     return (outputs, final_state)
-
-
-# In[ ]:
-
 
 def bidirecitonal_dynamic_lstm(cell_fw, cell_bw, inputs, seq_lengths):
     (outputs, final_states) = tf.nn.bidirectional_dynamic_rnn(
@@ -465,10 +405,6 @@ def bidirecitonal_dynamic_lstm(cell_fw, cell_bw, inputs, seq_lengths):
             in zip(final_states_fw, final_states_bw)]
     return (outputs_concat, tuple(final_states_concat))
 
-
-# In[ ]:
-
-
 def attention(cell, memory, memory_seq_lengths):
     attention_mechanism = tf.contrib.seq2seq.BahdanauAttention(
         attention_size, 
@@ -481,10 +417,6 @@ def attention(cell, memory, memory_seq_lengths):
         output_attention=False)# behavior of BahdanauAttention
     return cell_attention
 
-
-# In[ ]:
-
-
 def decode(cell, helper, initial_state):
     decoder = tf.contrib.seq2seq.BasicDecoder(
         cell, helper, initial_state)
@@ -492,10 +424,6 @@ def decode(cell, helper, initial_state):
         decoder, impute_finished=True,
         maximum_iterations=max_iterations, swap_memory=True)
     return (decoder_outputs, final_lengths)
-
-
-# In[ ]:
-
 
 """
 Recursive function to get the TensorShape of an input state
@@ -531,10 +459,6 @@ def get_state_shape(input_state):
              "5. tuple\n"))
     return state_shape
 
-
-# In[ ]:
-
-
 """
 Compute average gradients, perform gradient clipping and apply gradients
 Args:
@@ -556,10 +480,6 @@ def apply_grads(optimizer, tower_grads):
 
     return apply_gradients_op
 
-
-# In[ ]:
-
-
 def compute_grads(loss, optimizer, var_list=None):
     grads = optimizer.compute_gradients(loss, var_list=var_list)
     valid_grads = [
@@ -570,20 +490,12 @@ def compute_grads(loss, optimizer, var_list=None):
         print("Warning: some grads are None.")
     return valid_grads
 
-
-# In[ ]:
-
-
 def get_sequence_mask(seq_lengths, dtype=tf.bool):
     max_seq_length = tf.reduce_max(seq_lengths)
     sequence_mask = tf.sequence_mask(
         seq_lengths, maxlen=max_seq_length,
         dtype=dtype)
     return sequence_mask
-
-
-# In[ ]:
-
 
 """
 returns:
@@ -1300,35 +1212,35 @@ with tf.Session(graph=graph, config=config) as sess:
     saver_LM.restore(sess, ckpt_LM)
     print("Resotred checkpoint", ckpt_LM)
        
-#     for i in xrange(num_epochs_seq2seq):
-#         run_seq2seq(sess, source_train, target_train, "train", i)
-#         (source_train, target_train) = shuffle(source_train, target_train)
-#         run_seq2seq(sess, source_test, target_test, "test", i)
+    for i in xrange(num_epochs_seq2seq):
+        run_seq2seq(sess, source_train, target_train, "train", i)
+        (source_train, target_train) = shuffle(source_train, target_train)
+        run_seq2seq(sess, source_test, target_test, "test", i)
     
-#     num_polite_examples = len(polite_lst)
-#     test_size = num_polite_examples // 10
-#     polite_lst_train = polite_lst[:(-test_size)]
-#     polite_lst_test = polite_lst[(-test_size):]
+    num_polite_examples = len(polite_lst)
+    test_size = num_polite_examples // 10
+    polite_lst_train = polite_lst[:(-test_size)]
+    polite_lst_test = polite_lst[(-test_size):]
     
-#     min_ppl = 100000
-#     for i in xrange(num_epochs_LM):
-#         run_LM(polite_lst_train, i, "train")
-#         np.random.shuffle(polite_lst_train)
-#         ppl = run_LM(polite_lst_test, i, "test")
-#         if ppl < min_ppl:
-#             min_ppl = ppl
-#         else:
-#             print("Done with LM training. Stopped at epoch %d." % i)
-#             break
+    min_ppl = 100000
+    for i in xrange(num_epochs_LM):
+        run_LM(polite_lst_train, i, "train")
+        np.random.shuffle(polite_lst_train)
+        ppl = run_LM(polite_lst_test, i, "test")
+        if ppl < min_ppl:
+            min_ppl = ppl
+        else:
+            print("Done with LM training. Stopped at epoch %d." % i)
+            break
     
-#     Run fusion model for different fusion rates    
+    # Run fusion model for different fusion rates    
     responses_lst = []
     for fusion_rate in fusion_rate_candidates:
         responses = run_fusion(sess, fusion_rate, source_test)
         
-#         dump_pickle(
-#             data_path + "/fusion_%.1f_%d_infer.pkl" % (fusion_rate, seq2seq_epoch), 
-#             responses)
+        dump_pickle(
+            data_path + "/fusion_%.1f_%d_infer.pkl" % (fusion_rate, seq2seq_epoch), 
+            responses)
         
         responses_lst.append(responses)
 
