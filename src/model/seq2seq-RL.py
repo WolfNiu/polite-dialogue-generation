@@ -27,7 +27,7 @@ from src.basic.util import (shuffle, remove_duplicates,
 
 def parse_args():
     parser.add_argument(
-        "--ckpt_generator", type=str, default="../checkpoint/model",
+        "--ckpt_generator", type=str, default="../checkpoint/seq2seq-RL",
         help="path to model files")
     parser.add_argument(
         "--ckpt_classifier", type=str, default="../checkpoint/classifier",
