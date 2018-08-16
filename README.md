@@ -29,7 +29,7 @@ To test the politeness classifier, please run
 ```
 python3 src/model/LSTM-CNN-multi-GPU-new_vocab.py --test --ckpt [name of the checkpoint]
 ```
-The model should get 85.0% and 70.2% accuracies on the WIKI and SE domains, respectively (for comparison to results from previous works, please refer to [the paper](https://arxiv.org/abs/1805.03162)). 
+The model should get around 85.0% and 70.2% accuracies on the WIKI and SE domains, respectively (for comparison to results from previous works, please refer to [the paper](https://arxiv.org/abs/1805.03162)). 
 
 You can optionally use our trained model [checkpoint](https://drive.google.com/open?id=1593PqiZFk8O1p7095D-8E6KDvxx6j1qQ) by putting it under ckpt/classifier/)
 
