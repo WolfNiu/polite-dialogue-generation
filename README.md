@@ -6,7 +6,7 @@ Includes code for the politeness classifier and the three proposed polite dialog
 
 Authors: Tong Niu, Mohit Bansal
 
-## Classifier
+## Politeness Classifier
 
 (1) Obtain the [Stanford Politeness Corpus](http://www.cs.cornell.edu/~cristian/Politeness_files/Stanford_politeness_corpus.zip), unzip it, and put the files under data/
 
@@ -20,12 +20,12 @@ python3 src/basic/read_csv.py
 python3 src/basic/process_requests.py --tagger_path [path to Stanford Postagger jar file] --word2vec [path to pretrained word2vec bin file]
 ```
 
-To train classifier from scratch, please run
+To train the politeness classifier from scratch, please run
 ```
 python3 src/model/LSTM-CNN-multi-GPU-new_vocab.py
 ```
 
-To test the classifier, please run
+To test the politeness classifier, please run
 ```
 python3 src/model/LSTM-CNN-multi-GPU-new_vocab.py --test --ckpt [name of the checkpoint]
 ```
@@ -34,7 +34,7 @@ The model should get 85.0% and 70.2% accuracies on the WIKI and SE domains, resp
 You can optionally use our trained model [checkpoint](https://drive.google.com/open?id=1593PqiZFk8O1p7095D-8E6KDvxx6j1qQ) by putting it under ckpt/classifier/)
 
 ## Polite Dialogue Generation
-After training the classifier, please put the SubTle corpus (for pretraining) and the MovieTriples dataset under data/.
+After training the politeness classifier, please put the SubTle corpus (for pretraining) and the MovieTriples dataset under data/.
 
 The SubTle corpus can be obtained by contacting the authors of the [original paper](http://www.inesc-id.pt/publications/10062/pdf), 
 and the MovieTriples dataset can be obtained from the [owner of the dataset](https://github.com/julianser) upon request.
