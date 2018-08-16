@@ -57,7 +57,7 @@ python3 src/model/seq2seq-LFT.py --ckpt_classifier [name of the checkpoint]
 python3 src/model/seq2seq_RL.py --ckpt_classifier [name of the checkpoint]
 ```
 
-To test the above three models, please add "--test" to each command, the generated responses will be under output/ (you can optionally use our trained model [checkpoints](https://drive.google.com/open?id=1593PqiZFk8O1p7095D-8E6KDvxx6j1qQ) by putting them under ckpt/fusion/, ckpt/lft/ or ckpt/seq2seq/)
+To test the above three models, please add "--test" to each command, the generated responses will be under output/ (you can optionally use our trained model [checkpoints](https://drive.google.com/open?id=1593PqiZFk8O1p7095D-8E6KDvxx6j1qQ) by putting them under ckpt/fusion/, ckpt/lft/ and ckpt/seq2seq-RL/, respectively).
 ```
 python3 src/model/fusion_seq2seq_LM.py --test --ckpt_generator [name of the checkpoint]
 python3 src/model/seq2seq-LFT.py --test --ckpt_generator [name of the checkpoint]
