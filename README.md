@@ -4,7 +4,7 @@ Authors' implementation of "[Polite Dialogue Generation Without Parallel Data](h
 
 Includes code for the politeness classifier and the three proposed polite dialogue generation models.
 
-Authors: Tong Niu, Mohit Bansal ([Niu and Bansal, 2018](https://transacl.org/ojs/index.php/tacl/rt/captureCite/1424/310/BibtexCitationPlugin))
+Authors: Tong Niu, Mohit Bansal ([bib citation entry](https://transacl.org/ojs/index.php/tacl/rt/captureCite/1424/310/BibtexCitationPlugin))
 
 ## Politeness Classifier
 
