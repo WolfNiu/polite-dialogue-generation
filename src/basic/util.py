@@ -248,3 +248,23 @@ def remove_duplicates(lst):
     print("Removed %d duplicates!" % num_removed)
     return lst_without_duplicates
 
+def zip_remove_duplicates_unzip(lsts):
+    zipped = zip_lsts(lsts)
+    zipped_without_duplicates = remove_duplicates(zipped)
+    unzipped = unzip_lst(zipped_without_duplicates)
+    return unzipped
+
+def split_triple_lst(triple_lst, indices):
+    popped_indices = [i for (i, triple) 
+                      in enumerate(triple_lst) 
+                      if len(set(triple[1]).intersection(set(indices))) > 0]
+    kept_lst = [triple_lst[i] for (i, triple) 
+                in enumerate(triple_lst)
+                if i not in popped_indices]
+    popped_lst = [triple_lst[i] for i in popped_indices]
+    assert len(kept_lst) + len(popped_lst) == len(triple_lst)
+    return (kept_lst, popped_lst)
+
+def avg(lst):
+    avg = sum(lst) / len(lst)
+    return avg
