@@ -31,8 +31,8 @@ from src.model.util import (concat_states, get_keep_prob, dropout create_cell,
                             compute_grads, attention, decode, 
                             get_bad_mask, get_unk_mask, get_sequence_mask,
                             calculate_BLEU, calculate_BLEUs, get_BLEUs, 
-                            get_valid_mask, pad_tensor, tile_single_cell_state, 
-                            tile_multi_cell_state, gpu_config, get_saver)
+                            get_valid_mask, pad_tensor, tile_single_cell_state, tile_multi_cell_state,
+                            gpu_config, get_saver)
 
 def parse_args():
     parser.add_argument(
