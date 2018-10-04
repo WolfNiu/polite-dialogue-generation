@@ -85,7 +85,7 @@ gpu configurations
 """
 batch_size = 96
 num_gpus = 1
-gpu_start_index = 0
+gpu_start_index = 1
 assert batch_size % num_gpus == 0
 batch_size_per_gpu = batch_size // num_gpus
 

@@ -1,3 +1,6 @@
+checkpoint
+*.txt
+*.sh
 *.pkl
 *.meta
 *.index
