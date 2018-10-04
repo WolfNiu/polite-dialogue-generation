@@ -16,6 +16,45 @@ import tensorflow as tf
 # In[ ]:
 
 
+"""
+Shared hyperparameters
+"""
+beam_width = 2
+length_penalty_weight = 1.0
+clipping_threshold = 5.0 # threshold for gradient clipping
+embedding_size = 300
+learning_rate = 0.001
+
+"""
+seq2seq hyperparameters
+"""
+hidden_size_encoder = 256
+hidden_size_decoder = 512
+num_layers_encoder = 4
+num_layers_decoder = num_layers_encoder // 2
+    
+dropout_rate = 0.2
+attention_size = 512
+attention_layer_size = 256
+
+"""
+RL training parameters
+"""
+threshold = 0.2
+baseline = 0.5 # since our training data is balanced, 0.5 is reasonable 
+
+"""
+classifier hyperparameters
+"""
+hidden_size_classifier = 256
+num_classes = 2
+filter_sizes = [3, 4, 5]
+num_filters = 75
+
+
+# In[ ]:
+
+
 def concat_states(states):
     state_lst = []
     for state in states:
@@ -181,22 +220,16 @@ def bidirecitonal_dynamic_lstm(cell_fw, cell_bw, inputs, seq_lengths):
     outputs_concat = tf.concat(outputs, axis=2)
 
     (final_states_fw, final_states_bw) = final_states
-    if num_layers_decoder == 1:
-        final_state_fw_c = final_states_fw[0]
-        final_state_fw_h = final_states_fw[1]
-        final_state_bw_c = final_states_bw[0]
-        final_state_bw_h = final_states_bw[1]        
-    else:
-        final_states_concat = [
-            tf.contrib.rnn.LSTMStateTuple(
-                tf.concat(
-                    [final_state_fw.c, final_state_bw.c], 
-                    axis=1),
-                tf.concat(
-                    [final_state_fw.h, final_state_bw.h], 
-                    axis=1))
-            for (final_state_fw, final_state_bw)
-            in zip(final_states_fw, final_states_bw)]
+    final_states_concat = [
+        tf.contrib.rnn.LSTMStateTuple(
+            tf.concat(
+                [final_state_fw.c, final_state_bw.c], 
+                axis=1),
+            tf.concat(
+                [final_state_fw.h, final_state_bw.h], 
+                axis=1))
+        for (final_state_fw, final_state_bw)
+        in zip(final_states_fw, final_states_bw)]
     return (outputs_concat, tuple(final_states_concat))
 
 """
@@ -310,14 +343,6 @@ def attention(cell, memory, memory_seq_lengths):
         output_attention=False)# behavior of BahdanauAttention
     return cell_attention
 
-def decode(cell, helper, initial_state):
-    decoder = tf.contrib.seq2seq.BasicDecoder(
-        cell, helper, initial_state)
-    (decoder_outputs, _, final_lengths) = tf.contrib.seq2seq.dynamic_decode(
-        decoder, impute_finished=True,
-        maximum_iterations=max_iterations, swap_memory=True)
-    return (decoder_outputs, final_lengths)
-
 def get_bad_mask(seqs):
     bad_tensor = tf.convert_to_tensor(bad_indices)
     bool_matrix = tf.equal(
@@ -341,9 +366,6 @@ def get_unk_mask(seqs):
     unk_mask = tf.logical_not(
         tf.reduce_any(bool_matrix, axis=0))
     return unk_mask
-
-
-# In[ ]:
 
 
 def get_sequence_mask(seq_lengths, dtype=tf.bool):
@@ -397,22 +419,6 @@ def get_BLEUs(refs, ref_lengths, hyps, hyp_lenghts):
         [refs, ref_lengths, hyps, hyp_lenghts],
         tf.float32, stateful=False)
     return BLEUs
-
-def get_valid_mask(inputs):
-    valid_mask = tf.cast(
-        tf.logical_and(
-            tf.not_equal(inputs, 0),
-            tf.not_equal(inputs, end_token)),
-        tf.float32)
-    return valid_mask
-
-def pad_tensor(tensor, lengths):
-    max_length = tf.reduce_max(lengths)
-    padded = tf.pad(
-        tensor, 
-        [[0, 0], 
-         [0, max_iterations - max_length]])
-    return padded
 
 """
 Takes in a cell state and return its tiled version

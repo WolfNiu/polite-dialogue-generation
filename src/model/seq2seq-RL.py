@@ -1,3 +1,9 @@
+
+# coding: utf-8
+
+# In[ ]:
+
+
 # Imports for compatibility between Python 2&3
 from __future__ import absolute_import
 from __future__ import division
@@ -16,7 +22,7 @@ import string
 import argparse
 
 import sys
-sys.path.append("../..")
+sys.path.extend([".", "../", "../.."])
 from src.basic.util import (shuffle, remove_duplicates, zip_remove_duplicates_unzip, 
                             unzip_lst, zip_lsts,
                             prepend, append, avg,
@@ -24,22 +30,24 @@ from src.basic.util import (shuffle, remove_duplicates, zip_remove_duplicates_un
                             dump_pickle, dump_pickles, 
                             build_dict, read_lines, write_lines, 
                             group_lst, decode2string)
-from src.model.util import (concat_states, get_keep_prob, dropout create_cell,
+from src.model.util import (concat_states, get_keep_prob, create_cell,
                             create_MultiRNNCell, lstm, create_placeholders, 
                             create_embedding, dynamic_lstm, bidirecitonal_dynamic_lstm, 
                             average_gradients, apply_grads, apply_multiple_grads, 
-                            compute_grads, attention, decode, 
+                            compute_grads, attention, 
                             get_bad_mask, get_unk_mask, get_sequence_mask,
                             calculate_BLEU, calculate_BLEUs, get_BLEUs, 
-                            get_valid_mask, pad_tensor, tile_single_cell_state, tile_multi_cell_state,
+                            tile_single_cell_state, tile_multi_cell_state,
                             gpu_config, get_saver)
 
 def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Train/Val/Test seq2seq-RL politeness model")
     parser.add_argument(
-        "--ckpt_generator", type=str, default="../checkpoint/seq2seq-RL",
+        "--ckpt_generator", type=str, default="",
         help="path to model files")
     parser.add_argument(
-        "--ckpt_classifier", type=str, default="../checkpoint/classifier",
+        "--ckpt_classifier", type=str, default="",
         help="path to classifier checkpoints")
     parser.add_argument(
         "--test", action="store_true",
@@ -48,20 +56,24 @@ def parse_args():
         "--batch_size", type=int, default=96,
         help="batch size[96]")
     parser.add_argument(
-        "--data_path", type=str, default="../data/",
+        "--data_path", type=str, default="data/",
         help="path to the indexed polite/rude/neutral utterances")
+    parser.add_argument(
+        "--pretrain", action="store_true",
+        help="whether we perform pretraining with the SubTle corpus")
     args = parser.parse_args()
     return args
 
 args = parse_args()
 data_path = args.data_path
-restore_path = args.model_path
 ckpt_classifier = args.ckpt_classifier
+pretrain = args.pretrain
+
+ckpt_path = "ckpt/"
 
 start_epoch = 0
-total_epochs = 40
+total_epochs = 4 if pretrain else 40
 
-pretrain = False
 infer_only = args.test
 get_PPL = False
 fetch_embedding = False
@@ -83,7 +95,7 @@ flags
 no_unk = True
 thresholding = True
 
-polite_training = False
+polite_training = False if pretrain else True
 flip_polite = False # set this on to train a very rude dialogue system
 credit_assignment = False
 
@@ -151,8 +163,14 @@ else:
         source_train = data[7] + data[9]
         target_train = data[8] + data[10]
 
-[source_train, target_train] = zip_remove_duplicates_unzip([source_train, target_train])
-# [source_test, target_test] = zip_remove_duplicates_unzip([source_test, target_test])
+# Debugging only
+# source_train = source_train[:512]
+# target_train = target_train[:512]
+        
+if infer_only:
+    [source_test, target_test] = zip_remove_duplicates_unzip([source_test, target_test])
+else:
+    [source_train, target_train] = zip_remove_duplicates_unzip([source_train, target_train])
 
 print(len(source_train))
 
@@ -166,10 +184,6 @@ no_empty = [
 [source_train, target_train] = unzip_lst(no_empty)
 
 print(len(source_train))
-
-
-# In[17]:
-
 
 if pretrain:
     source_threshold = 32
@@ -189,6 +203,29 @@ print(len(zipped_lst))
 
 [source_train, target_train] = unzip_lst(zipped_lst)
 
+def pad_tensor(tensor, lengths):
+    max_length = tf.reduce_max(lengths)
+    padded = tf.pad(
+        tensor, 
+        [[0, 0], 
+         [0, max_iterations - max_length]])
+    return padded
+
+def decode(cell, helper, initial_state):
+    decoder = tf.contrib.seq2seq.BasicDecoder(
+        cell, helper, initial_state)
+    (decoder_outputs, _, final_lengths) = tf.contrib.seq2seq.dynamic_decode(
+        decoder, impute_finished=True,
+        maximum_iterations=max_iterations, swap_memory=True)
+    return (decoder_outputs, final_lengths)
+
+def get_valid_mask(inputs):
+    valid_mask = tf.cast(
+        tf.logical_and(
+            tf.not_equal(inputs, 0),
+            tf.not_equal(inputs, end_token)),
+        tf.float32)
+    return valid_mask
 
 def get_prob_dist(lst):
     fdist = FreqDist(lst)
@@ -239,10 +276,6 @@ tags = ["<person>", "<number>", "<continued_utterance>"]
 ner_tokens = [token2index[token] for token in tags]
 unk_indices = [unk_token, ner_tokens[2]]
 
-not_tokens = ["not", "n't"]
-not_indices = [token2index[token] for token in not_tokens]
-
-
 def dictionary_lookups(lst, dictionary):
     converted = [dictionary[x] for x in lst]
     return converted
@@ -250,8 +283,7 @@ def dictionary_lookups(lst, dictionary):
 """
 Shared hyperparameters
 """
-# beam_width = 10
-beam_width = 1
+beam_width = 2
 length_penalty_weight = 1.0
 clipping_threshold = 5.0 # threshold for gradient clipping
 embedding_size = 300
@@ -280,7 +312,6 @@ RL training parameters
 """
 threshold = 0.2
 baseline = 0.5 # since our training data is balanced, 0.5 is reasonable 
-bad_indices = good_indices = []
 
 """
 classifier hyperparameters
@@ -470,14 +501,7 @@ def build_seq2seq(input_seqs, target_seqs, filtered_target_seqs,
             else:
                 keep_prob = get_keep_prob(dropout_rate, is_training)
                         
-            # The mask makes sure the tokens are valid and not one of the bad words
-            if polite_training and not flip_polite: # for rude training, we do not need this
-                bad_mask = get_bad_mask(target_seqs)
-                sequence_mask = tf.logical_and(
-                    get_sequence_mask(target_seq_lengths), 
-                    bad_mask)
-            else:
-                sequence_mask = get_sequence_mask(target_seq_lengths)
+            sequence_mask = get_sequence_mask(target_seq_lengths)
     
             unk_mask = get_mask(target_seqs, unk_indices)
             decoder_mask = tf.logical_and(
@@ -641,21 +665,8 @@ def build_seq2seq(input_seqs, target_seqs, filtered_target_seqs,
                             tf.not_equal(sample_ids_sample, 0),
                             tf.float32) # propagate back the whole sentence (including <end>)
                         
-                        # Get tiled scores
-                        contains_polite_index = tf.reduce_any(get_mask(sample_ids_sample, good_indices), axis=1)
-                        contains_not_index = tf.reduce_any(get_mask(sample_ids_sample, not_indices), axis=1)
-                        contains_polite = tf.logical_and(
-                            contains_polite_index, tf.logical_not(contains_not_index))
-                        polite_scores_mask = tf.cast(contains_polite, tf.float32)
-                        not_contains_rude = tf.logical_not(
-                            tf.reduce_any(get_mask(sample_ids_sample, bad_indices), axis=1))
-                        not_rude_scores_mask = tf.cast(not_contains_rude, tf.float32)
-                        adjusted_scores_RL = tf.minimum(
-                            tf.maximum(filtered_scores_RL, polite_scores_mask), # max(0.3, 0.0) == 0.3, 
-                                                                                # max(0.5, 1.0) == 1.0
-                            not_rude_scores_mask)
                         tiled_scores = tf.tile( # tile scores to 2D
-                            tf.expand_dims(adjusted_scores_RL - baseline, axis=1),
+                            tf.expand_dims(filtered_scores_RL - baseline, axis=1),
                             [1, max_final_lengths_sample])
                         
                         if flip_polite: # if we actually want a rude dialogue system
@@ -746,7 +757,7 @@ with graph.as_default():
         filtered_target_seqs = tf.placeholder(
             tf.int32, shape=[batch_size, None], 
             name="filtered_target_seqs")
-            
+
     (batch_sample_ids, batch_final_lengths, 
      batch_total_loss, batch_num_tokens,
      apply_gradients_op, credit_weights_RL,
@@ -857,7 +868,7 @@ def run_seq2seq(sess, source_lst, target_lst, mode, epoch):
         
         if not get_PPL:
 #             saver_seq2seq.save(sess, "%sseq2seq_RL%s_%d" % (data_path, extra_str, epoch))
-            saver_seq2seq.save(sess, "%sseq2seq_RL%s_%d" % (restore_path, extra_str, epoch))
+            saver_seq2seq.save(sess, "%sseq2seq_RL%s_%d" % (ckpt_path, extra_str, epoch))
             print("Checkpoint saved for epoch %d." % epoch)
     else:
         return responses
@@ -874,61 +885,56 @@ with tf.Session(graph=graph, config=config) as sess:
         if force_restore:
             restore_ckpt = force_restore_point
         else:
-            restore_ckpt = "%sseq2seq_RL%s_%d" % (restore_path, extra_str, start_epoch - 1)
+            restore_ckpt = "%sseq2seq_RL%s_%d" % (ckpt_path, extra_str, start_epoch - 1)
         
         saver_seq2seq.restore(sess, restore_ckpt)
         print("Restored from", restore_ckpt)
     
-    if fetch_embedding:
-        embedding = sess.run(embedding_seq2seq, feed_dict={})
-        dump_pickle(force_restore_point + "_embedding.pkl", embedding)        
-    else:
-        # if infer only, we really don't need to restore anything
-        if polite_training and not infer_only:
-#             saver_classifier.restore(sess, "checkpoints/multi_GPU_300")
-            saver_classifier.restore(sess, ckpt_classifier)
-            print("Restored all varaibles from classifier.")
+    # if infer only, we really don't need to restore anything
+    if polite_training and not infer_only:
+        saver_classifier.restore(sess, ckpt_classifier)
+        print("Restored all varaibles from classifier.")
+    
+    for i in xrange(num_epochs):
+        if not infer_only:
+            run_seq2seq(sess, source_train, target_train, "train", i + start_epoch)
+            (source_train, target_train) = shuffle(source_train, target_train)
 
-        for i in xrange(num_epochs):
-            if not infer_only:
-                run_seq2seq(sess, source_train, target_train, "train", i + start_epoch)
-                (source_train, target_train) = shuffle(source_train, target_train)
+        if (((i + start_epoch + 1) >= 10 # only test for later epochs
+             and (i + start_epoch + 1) % 5 == 0)
+            or infer_only
+            and not get_PPL): # for getting perplexity of test data, use train branch
+            responses = run_seq2seq(
+                sess, source_test, target_test, "test", i + start_epoch)
 
-            if (((i + start_epoch + 1) >= 10 # only test for later epochs
-                 and (i + start_epoch + 1) % 5 == 0)
-                or infer_only
-                and not get_PPL): # for getting perplexity of test data, use train branch
-                responses = run_seq2seq(
-                    sess, source_test, target_test, "test", i + start_epoch)
+            # need to store all inferred responses in a pickle file
+            if infer_only:
+                dump_pickle(
+                    "%sseq2seq_RL_result%s_%d_infer.pkl" % (data_path, extra_str, i + start_epoch), 
+                    responses)
 
-                # need to store all inferred responses in a pickle file
-                if infer_only:
-                    dump_pickle(
-                        "%sseq2seq_RL_result%s_%d_infer.pkl" % (data_path, extra_str, i + start_epoch), 
-                        responses)
+            num_responses = len(responses)
+            zipped = zip_lsts(
+                [source_test[:num_responses], 
+                 target_test[:num_responses],
+                 responses])
+            flattened = [decode2string(index2token, sent, remove_END_TOKEN=True) 
+                         for tp in zipped for sent in tp]
 
-                num_responses = len(responses)
-                zipped = zip_lsts(
-                    [source_test[:num_responses], 
-                     target_test[:num_responses],
-                     responses])
-                flattened = [decode2string(index2token, sent, remove_END_TOKEN=True) 
-                             for tp in zipped for sent in tp]
+            # now we mark sentences that are generated by our model
+            marked_G = [("G: " + sent) 
+                        if k % 3 == 1 else sent
+                        for (k, sent) in enumerate(flattened)]
 
-                # now we mark sentences that are generated by our model
-                marked_G = [("G: " + sent) 
-                            if k % 3 == 1 else sent
-                            for (k, sent) in enumerate(flattened)]
+            marked_M = [("M: " + sent) 
+                        if k % 3 == 2 else sent
+                        for (k, sent) in enumerate(marked_G)]
 
-                marked_M = [("M: " + sent) 
-                            if k % 3 == 2 else sent
-                            for (k, sent) in enumerate(marked_G)]
+            filename = "%sseq2seq_RL_result%s_%d.txt" % (data_path, extra_str, i + start_epoch)
 
-                filename = "%sseq2seq_RL_result%s_%d.txt" % (data_path, extra_str, i + start_epoch)
+            write_lines(filename, marked_M)
 
-                write_lines(filename, marked_M)
-
-            # only need 1 epoch for inferring or getting PPL
-            if infer_only or get_PPL: 
-                break              
+        # only need 1 epoch for inferring or getting PPL
+        if infer_only or get_PPL: 
+            break              
 

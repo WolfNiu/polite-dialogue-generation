@@ -1,0 +1,6 @@
+model_checkpoint_path: "seq2seq_RL_pretrain_9"
+all_model_checkpoint_paths: "seq2seq_RL_pretrain_5"
+all_model_checkpoint_paths: "seq2seq_RL_pretrain_6"
+all_model_checkpoint_paths: "seq2seq_RL_pretrain_7"
+all_model_checkpoint_paths: "seq2seq_RL_pretrain_8"
+all_model_checkpoint_paths: "seq2seq_RL_pretrain_9"
