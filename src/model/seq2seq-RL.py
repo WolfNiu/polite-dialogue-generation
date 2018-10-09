@@ -44,20 +44,23 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Train/Val/Test seq2seq-RL politeness model")
     parser.add_argument(
-        "--ckpt_generator", type=str, default="",
+        "--ckpt_generator", type=str, default="ckpt/seq2seq_RL_pretrain_3",
         help="path to model files")
     parser.add_argument(
-        "--ckpt_classifier", type=str, default="",
+        "--ckpt_classifier", type=str, default="ckpt/politeness_classifier_2",
         help="path to classifier checkpoints")
     parser.add_argument(
         "--test", action="store_true",
         help="whether we are testing, default to False")
     parser.add_argument(
-        "--batch_size", type=int, default=96,
-        help="batch size[96]")
+        "--batch_size", type=int, default=512,
+        help="batch size[512]")
     parser.add_argument(
-        "--data_path", type=str, default="data/",
+        "--data_path", type=str, default="data/MovieTriples/",
         help="path to the indexed polite/rude/neutral utterances")
+    parser.add_argument(
+        "--politeness_path", type=str, default="data/Stanford_politeness_corpus/",
+        help="path to the Stanford Politeness Corpus")
     parser.add_argument(
         "--pretrain", action="store_true",
         help="whether we perform pretraining with the SubTle corpus")
@@ -65,7 +68,10 @@ def parse_args():
     return args
 
 args = parse_args()
+batch_size = args.batch_size
 data_path = args.data_path
+politeness_path = args.politeness_path
+ckpt_generator = args.ckpt_generator
 ckpt_classifier = args.ckpt_classifier
 pretrain = args.pretrain
 
@@ -83,7 +89,6 @@ force_restore = False
 """
 gpu configurations
 """
-batch_size = 96
 num_gpus = 1
 gpu_start_index = 1
 assert batch_size % num_gpus == 0
@@ -138,7 +143,9 @@ filenames = [
 if pretrain:
     filenames.extend(["Subtle_source.pkl", "Subtle_target.pkl"])
     
-files = [os.path.join(data_path, filename) for filename in filenames]
+files = [
+    os.path.join(politeness_path if "politeness" in filename else data_path, filename) 
+    for filename in filenames]
 
 # Load files
 data = load_pickles(files)
@@ -445,7 +452,7 @@ def build_classifier(inputs, seq_lengths, reuse):
             initializer=tf.constant_initializer(0.1))
         logits = tf.nn.xw_plus_b(
             h_maxpool_dropout, weights=W_out, biases=b_out)
-        scores = tf.nn.softmax(logits, dim=-1)
+        scores = tf.nn.softmax(logits, axis=-1)
         politeness_scores = scores[:, 1]
 
     optimizer = tf.train.AdamOptimizer(0.001)
@@ -860,6 +867,7 @@ def run_seq2seq(sess, source_lst, target_lst, mode, epoch):
                 for (response, length) 
                 in zip(ids.tolist(), lengths.tolist())]
             responses.extend(batch_responses)
+            print(f"Finished testing epoch {epoch}.")
 
     if mode == "train":
         epoch_perplexity = total_loss / total_num_tokens
@@ -881,11 +889,12 @@ with tf.Session(graph=graph, config=config) as sess:
     sess.run(init)
     print("Initialized.")
     
-    if force_restore or start_epoch > 0:
+    if force_restore or start_epoch > 0 or infer_only:
         if force_restore:
             restore_ckpt = force_restore_point
         else:
-            restore_ckpt = "%sseq2seq_RL%s_%d" % (ckpt_path, extra_str, start_epoch - 1)
+#             restore_ckpt = "%sseq2seq_RL%s_%d" % (ckpt_path, extra_str, start_epoch - 1)
+            restore_ckpt = ckpt_generator
         
         saver_seq2seq.restore(sess, restore_ckpt)
         print("Restored from", restore_ckpt)
@@ -899,7 +908,7 @@ with tf.Session(graph=graph, config=config) as sess:
         if not infer_only:
             run_seq2seq(sess, source_train, target_train, "train", i + start_epoch)
             (source_train, target_train) = shuffle(source_train, target_train)
-
+    
         if (((i + start_epoch + 1) >= 10 # only test for later epochs
              and (i + start_epoch + 1) % 5 == 0)
             or infer_only
@@ -907,11 +916,11 @@ with tf.Session(graph=graph, config=config) as sess:
             responses = run_seq2seq(
                 sess, source_test, target_test, "test", i + start_epoch)
 
-            # need to store all inferred responses in a pickle file
-            if infer_only:
-                dump_pickle(
-                    "%sseq2seq_RL_result%s_%d_infer.pkl" % (data_path, extra_str, i + start_epoch), 
-                    responses)
+#             # need to store all inferred responses in a pickle file
+#             if infer_only:
+#                 dump_pickle(
+#                     "%sseq2seq_RL_result%s_%d_infer.pkl" % (data_path, extra_str, i + start_epoch), 
+#                     responses)
 
             num_responses = len(responses)
             zipped = zip_lsts(

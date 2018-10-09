@@ -1,3 +1,9 @@
+
+# coding: utf-8
+
+# In[ ]:
+
+
 import numpy as np
 import os
 from nltk.tokenize import word_tokenize, TweetTokenizer

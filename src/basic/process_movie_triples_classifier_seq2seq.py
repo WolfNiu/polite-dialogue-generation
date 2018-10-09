@@ -1,3 +1,9 @@
+
+# coding: utf-8
+
+# In[ ]:
+
+
 import numpy as np
 import csv
 import pickle
@@ -20,18 +26,21 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Preprocess MovieTriples dataset")
     parser.add_argument(
-        "--data_path", type=str, default="../data/MovieTriples/",
+        "--data_path", type=str, default="data/MovieTriples/",
         help="path to the MovieTriples dataset")
     parser.add_argument(
-        "--word2vec", type=str, default="../GoogleNews-vectors-negative300.bin",
+        "--politeness_path", type=str, default="data/Stanford_politeness_corpus/",
+        help="path to the Stanford Politeness corpus")
+    parser.add_argument(
+        "--word2vec", type=str, default="GoogleNews-vectors-negative300.bin",
         help="path to pretrained word2vec binary file")
     args = parser.parse_args()
     return args
 
 args = parse_args()
 data_path = args.data_path
+politeness_path = args.politeness_path
 word2vec = args.word2vec
-
 
 """
 Change the tokenization of MovieTriples so that
@@ -88,9 +97,6 @@ def retokenize(string, tuples=[], reg_tuples=[]):
 """
 Load tab separated datasets
 """
-
-target_path = "../data/MovieTriples/"
-
 filenames = [
     "Training_Shuffled_Dataset.txt", 
     "Validation_Shuffled_Dataset.txt", 
@@ -109,7 +115,6 @@ for filename in filenames:
     print("Done loading file %s" % file)
     datasets.append(triples_lst)
 
-politeness_path = "../data/politeness"
 politeness_filenames = [
     "vocab_politeness.pkl", "shared_vocab_politeness.pkl",
     "new_vocab_politeness.pkl"]
@@ -174,7 +179,7 @@ for (i, dataset) in enumerate(datasets):
 
 print(len(datasets[0]), len(truncated_datasets[0][0]))
 
-source_test_text_file = target_path + "source_test_text.txt"
+source_test_text_file = data_path + "source_test_text.txt"
 write_lines(source_test_text_file, source_test_text)
 
 # Load word embedding model
@@ -300,7 +305,8 @@ pickle_lst = [
 ]
 
 pickle_files = [
-    os.path.join(target_path, file + ".pkl")
+    os.path.join(data_path, file + ".pkl")
     for file in pickle_lst]
 
 dump_pickles(pickle_files, lsts)
+

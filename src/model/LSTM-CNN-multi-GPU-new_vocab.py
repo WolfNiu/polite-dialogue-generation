@@ -1,3 +1,9 @@
+
+# coding: utf-8
+
+# In[ ]:
+
+
 # Imports for compatibility between Python 2&3
 from __future__ import absolute_import
 from __future__ import division
@@ -32,7 +38,10 @@ def parse_args():
         "--test", action="store_true",
         help="whether we are testing")
     parser.add_argument(
-        "--ckpt", type=str, default="ckpt/classifier/politeness_classifier_2")
+        "--ckpt", type=str, default="ckpt/politeness_classifier_2")
+    parser.add_argument(
+        "--use_all_data", action="store_true",
+        help="whether we use all data (including the test data) for training")
     args = parser.parse_args()
     return args
 
@@ -41,7 +50,8 @@ args = parse_args()
 data_path = args.data_path
 is_test = args.test
 ckpt = args.ckpt
-model_path = "ckpt/classifier/"
+use_all_data = args.use_all_data
+model_path = "ckpt/"
 
 batch_size = 32
 num_gpus = 1
@@ -428,7 +438,7 @@ def pad(input_seqs, sequence_lengths):
 # In[ ]:
 
 
-def run(sess, requests, truth_labels, num_batches, mode, epoch, dataset):    
+def run(sess, requests, truth_labels, num_batches, mode, epoch, dataset):
     accuracy_lst = []
     for i in xrange(num_batches):
         start = batch_size * i
@@ -506,19 +516,28 @@ with tf.Session(graph=graph, config=config) as sess:
         sess.run(tf.tables_initializer())
     print("Initialized all variables.")
     
-    if is_test:
-        saver.restore(sess, ckpt)
-        print("Restored pretrained variables.")
-        run(sess, requests_test_WIKI, labels_test_WIKI,
-            num_test_batches_WIKI, "test", 2, "WIKI")
-        run(sess, requests_test_SE, labels_test_SE,
-            num_test_batches_SE, "test", 2, "SE")
-    else:
+    if use_all_data:
+        all_requests = requests_WIKI + requests_SE
+        all_labels = labels_WIKI + labels_SE
+        all_num_batches = len(all_requests) // batch_size
         for i in xrange(num_epochs):
-            run(sess, requests_train_WIKI, labels_train_WIKI,
-                num_train_batches_WIKI, "train", i, "WIKI")        
+            run(sess, all_requests, all_labels, 
+                all_num_batches, "train", i, "ALL")
+            all_requests, all_labels = shuffle(all_requests, all_labels)
+    else:
+        if is_test:
+            saver.restore(sess, ckpt)
+            print("Restored pretrained variables.")
             run(sess, requests_test_WIKI, labels_test_WIKI,
-                num_test_batches_WIKI, "test", i, "WIKI")
+                num_test_batches_WIKI, "test", 2, "WIKI")
             run(sess, requests_test_SE, labels_test_SE,
-                num_test_batches_SE, "test", i, "SE")
+                num_test_batches_SE, "test", 2, "SE")
+        else:
+            for i in xrange(num_epochs):
+                run(sess, requests_train_WIKI, labels_train_WIKI,
+                    num_train_batches_WIKI, "train", i, "WIKI")
+                run(sess, requests_test_WIKI, labels_test_WIKI,
+                    num_test_batches_WIKI, "test", i, "WIKI")
+                run(sess, requests_test_SE, labels_test_SE,
+                    num_test_batches_SE, "test", i, "SE")
 
