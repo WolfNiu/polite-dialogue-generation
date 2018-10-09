@@ -44,6 +44,11 @@ To preprocess the SubTle corpus and the MovieTriples dataset, please run
 python3 process_movie_triples_classifier_seq2seq.py --word2vec [path to pretrained word2vec bin file]
 ```
 
+(0) To pretrain on the SubTle corpus, please run
+```
+python3 src/model/seq2seq_RL.py --pretrain
+```
+
 (1) To train the Fusion model, please run
 ```
 python3 src/model/fusion_seq2seq_LM.py --ckpt_classifier [name of the checkpoint]
