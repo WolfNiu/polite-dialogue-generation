@@ -69,7 +69,7 @@ python3 src/model/seq2seq_RL.py --test --ckpt_generator [name of the checkpoint]
 If you happen to use our work, please consider [citing our paper](https://transacl.org/ojs/index.php/tacl/rt/captureCite/1424/310/BibtexCitationPlugin).
 ```
 @article{TACL1424,
-	author = {Niu, Tong  and Bansal, Mohit },
+	author = {Niu, Tong  and Bansal, Mohit},
 	title = {Polite Dialogue Generation Without Parallel Data},
 	journal = {Transactions of the Association for Computational Linguistics},
 	volume = {6},
