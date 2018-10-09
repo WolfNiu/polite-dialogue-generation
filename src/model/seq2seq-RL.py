@@ -53,8 +53,8 @@ def parse_args():
         "--test", action="store_true",
         help="whether we are testing, default to False")
     parser.add_argument(
-        "--batch_size", type=int, default=512,
-        help="batch size[512]")
+        "--batch_size", type=int, default=384,
+        help="batch size[384]")
     parser.add_argument(
         "--data_path", type=str, default="data/MovieTriples/",
         help="path to the indexed polite/rude/neutral utterances")
@@ -889,7 +889,7 @@ with tf.Session(graph=graph, config=config) as sess:
     sess.run(init)
     print("Initialized.")
     
-    if force_restore or start_epoch > 0 or infer_only:
+    if force_restore or infer_only or (not pretrain): # for pretraining we don't have anything to restore from
         if force_restore:
             restore_ckpt = force_restore_point
         else:
