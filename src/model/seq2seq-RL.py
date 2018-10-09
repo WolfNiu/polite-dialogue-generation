@@ -84,8 +84,6 @@ infer_only = args.test
 get_PPL = False
 fetch_embedding = False
 
-force_restore = False
-
 """
 gpu configurations
 """
@@ -867,7 +865,7 @@ def run_seq2seq(sess, source_lst, target_lst, mode, epoch):
                 for (response, length) 
                 in zip(ids.tolist(), lengths.tolist())]
             responses.extend(batch_responses)
-            print(f"Finished testing epoch {epoch}.")
+            print(f"Finished testing batch {i}.")
 
     if mode == "train":
         epoch_perplexity = total_loss / total_num_tokens
@@ -889,15 +887,9 @@ with tf.Session(graph=graph, config=config) as sess:
     sess.run(init)
     print("Initialized.")
     
-    if force_restore or infer_only or (not pretrain): # for pretraining we don't have anything to restore from
-        if force_restore:
-            restore_ckpt = force_restore_point
-        else:
-#             restore_ckpt = "%sseq2seq_RL%s_%d" % (ckpt_path, extra_str, start_epoch - 1)
-            restore_ckpt = ckpt_generator
-        
-        saver_seq2seq.restore(sess, restore_ckpt)
-        print("Restored from", restore_ckpt)
+    if (not pretrain) or infer_only: # for pretraining we don't have anything to restore from
+        saver_seq2seq.restore(sess, ckpt_generator)
+        print("Restored from", ckpt_generator)
     
     # if infer only, we really don't need to restore anything
     if polite_training and not infer_only:
