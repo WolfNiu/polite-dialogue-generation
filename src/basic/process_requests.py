@@ -36,6 +36,9 @@ def parse_args():
     parser.add_argument(
         "--word2vec", type=str, default="/playpen/home/tongn/GoogleNews-vectors-negative300.bin",
         help="path to pretrained word2vec binary file")
+    parser.add_argument(
+        "--use_existing_vocab", action="store_true", 
+        help="whether to use an existing vocab set")
     args = parser.parse_args()
     return args
 
@@ -48,6 +51,7 @@ args = parse_args()
 filenames = [args.wiki_file, args.se_file]
 tagger_path = args.tagger_path
 word2vec = args.word2vec
+use_existing_vocab = args.use_existing_vocab
 files = [
     os.path.join(data_path, filename)
     for filename in filenames]
@@ -120,34 +124,37 @@ Vocab lists:
 • vocab_freq: frequent vocab that is not in word2vec vocab
 """
 
-freq_threshold = 2
+if use_existing_vocab:
+    vocab_politeness = load_pickle("data/Stanford_politeness_corpus/vocab_politeness.pkl")
+else:
+    freq_threshold = 2
 
-all_tokens = [token
-    for dataset in tokenized_datasets
-    for request in dataset
-    for token in request]
+    all_tokens = [token
+        for dataset in tokenized_datasets
+        for request in dataset
+        for token in request]
 
-fdist = FreqDist(all_tokens)
-fdist_lst = fdist.most_common()
-vocab_politeness = [token for (token, _) in fdist_lst]
-vocab_politeness_freq = [
-    token 
-    for (token, freq) in fdist_lst 
-    if (freq >= freq_threshold)]
+    fdist = FreqDist(all_tokens)
+    fdist_lst = fdist.most_common()
+    vocab_politeness = [token for (token, _) in fdist_lst]
+    vocab_politeness_freq = [
+        token 
+        for (token, freq) in fdist_lst 
+        if (freq >= freq_threshold)]
 
-UNK = "UNK_TOKEN"
-vocab_word2vec = list(model.vocab) # get word2vec vocabulary list
-vocab_shared = list((set(vocab_politeness)).intersection(set(vocab_word2vec)))
-vocab_new = list((set(vocab_politeness_freq)).difference(set(vocab_word2vec)))
-vocab_politeness = [UNK] + vocab_new + vocab_shared
+    UNK = "UNK_TOKEN"
+    vocab_word2vec = list(model.vocab) # get word2vec vocabulary list
+    vocab_shared = list((set(vocab_politeness)).intersection(set(vocab_word2vec)))
+    vocab_new = list((set(vocab_politeness_freq)).difference(set(vocab_word2vec)))
+    vocab_politeness = [UNK] + vocab_new + vocab_shared
 
-print("Shared vocab size: %d" % len(vocab_shared))
-print("New vocab size: %d" % len(vocab_new))
+    print("Shared vocab size: %d" % len(vocab_shared))
+    print("New vocab size: %d" % len(vocab_new))
 
-"""
-Obtain the reduced word2vec embedding matrix
-"""
-embedding_word2vec = model[vocab_shared]
+    """
+    Obtain the reduced word2vec embedding matrix
+    """
+    embedding_word2vec = model[vocab_shared]
 
 """
 Create dictionaries between indices and tokens
@@ -158,7 +165,6 @@ token2index = {token: i for (i, token) in enumerate(vocab_politeness)}
 """
 Replace a token with its index in the vocab
 """
-
 index_UNK = token2index[UNK]
 
 def replace_with_index(token):
@@ -177,26 +183,27 @@ indexed_datasets = [
      for request in dataset]
     for dataset in tokenized_datasets]
 
+if use_existing_vocab:
+    lsts = [indexed_datasets[0], indexed_datasets[1]]
+    pickle_lst = ["dataset_WIKI", "dataset_SE"]
+else:
+    """
+    Pickle all lists
+    """
 
-"""
-Pickle all lists
-"""
+    lsts = [
+        vocab_politeness,
+        vocab_shared,
+        vocab_new,
+        indexed_datasets[0], indexed_datasets[1],
+        embedding_word2vec]
 
-lsts = [
-    vocab_politeness,
-    vocab_shared,
-    vocab_new,
-    indexed_datasets[0], indexed_datasets[1],
-    embedding_word2vec
-]
-
-pickle_lst = [
-    "vocab_politeness",
-    "shared_vocab_politeness",
-    "new_vocab_politeness",
-    "dataset_WIKI", "dataset_SE",
-    "embedding_word2vec_politeness",
-]
+    pickle_lst = [
+        "vocab_politeness",
+        "shared_vocab_politeness",
+        "new_vocab_politeness",
+        "dataset_WIKI", "dataset_SE",
+        "embedding_word2vec_politeness"]
 
 pickle_files = [
     os.path.join(data_path, file + ".pkl")
