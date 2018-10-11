@@ -706,7 +706,7 @@ def build_seq2seq(input_seqs, target_seqs, filtered_target_seqs,
                         beam_search_decoder, 
     #                     impute_finished=True, # cannot be used with Beamsearch
                         maximum_iterations=max_iterations, 
-                        swap_memory=True)         
+                        swap_memory=True)
                     sample_ids = output_beam[0].predicted_ids[:, :, 0]
                     final_lengths = output_beam[2][:, 0]
                     

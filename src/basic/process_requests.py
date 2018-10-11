@@ -17,7 +17,7 @@ import random
 from nltk.tokenize.stanford import StanfordTokenizer
 import argparse
 
-from util import load_pickles, dump_pickles, dump_pickle
+from util import load_pickle, load_pickles, dump_pickles, dump_pickle
 
 
 def parse_args():
@@ -75,7 +75,6 @@ datasets[1][bad_index] = (
     "There are UNK_TOKEN permutations of "
     "200-element set. You want them all?")
 
-
 print("Tokenizing all requests.")
 
 tweet_tokenizer = TweetTokenizer(
@@ -124,6 +123,8 @@ Vocab lists:
 • vocab_freq: frequent vocab that is not in word2vec vocab
 """
 
+UNK = "UNK_TOKEN"
+
 if use_existing_vocab:
     vocab_politeness = load_pickle("data/Stanford_politeness_corpus/vocab_politeness.pkl")
 else:
@@ -142,7 +143,6 @@ else:
         for (token, freq) in fdist_lst 
         if (freq >= freq_threshold)]
 
-    UNK = "UNK_TOKEN"
     vocab_word2vec = list(model.vocab) # get word2vec vocabulary list
     vocab_shared = list((set(vocab_politeness)).intersection(set(vocab_word2vec)))
     vocab_new = list((set(vocab_politeness_freq)).difference(set(vocab_word2vec)))
