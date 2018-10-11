@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 import numpy as np
@@ -18,6 +18,9 @@ from nltk.tokenize.stanford import StanfordTokenizer
 import argparse
 
 from util import load_pickle, load_pickles, dump_pickles, dump_pickle
+
+
+# In[ ]:
 
 
 def parse_args():
@@ -93,10 +96,11 @@ jar_pos = "stanford-postagger.jar"
 tokenizer = StanfordTokenizer(path_pos + jar_pos)
 tokenizer = StanfordTokenizer(tagger_path)
 
-tokenized_datasets_original = [
-    [tokenizer.tokenize(' '.join(request).strip())
-     for request in dataset]
-    for dataset in tokenized_datasets_original_tweet]
+# tokenized_datasets_original = [
+#     [tokenizer.tokenize(' '.join(request).strip())
+#      for request in dataset]
+#     for dataset in tokenized_datasets_original_tweet]
+tokenized_datasets_original = tokenized_datasets_original_tweet
 
 """
 Convert all tokens to lowercase
@@ -106,13 +110,6 @@ tokenized_datasets = [
       for token in request]
      for request in dataset]
     for dataset in tokenized_datasets_original]
-
-# Load word embedding model
-logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
-# model_path = path + 'GoogleNews-vectors-negative300.bin'
-model_path = word2vec
-model = KeyedVectors.load_word2vec_format(fname=model_path, binary=True)
-
 
 """
 Build the whole vocabulary
@@ -128,6 +125,10 @@ UNK = "UNK_TOKEN"
 if use_existing_vocab:
     vocab_politeness = load_pickle("data/Stanford_politeness_corpus/vocab_politeness.pkl")
 else:
+    # Load word embedding model
+    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+    model = KeyedVectors.load_word2vec_format(fname=word2vec, binary=True)
+    
     freq_threshold = 2
 
     all_tokens = [token
@@ -190,7 +191,6 @@ else:
     """
     Pickle all lists
     """
-
     lsts = [
         vocab_politeness,
         vocab_shared,
