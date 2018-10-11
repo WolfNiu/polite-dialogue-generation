@@ -46,7 +46,7 @@ python3 process_movie_triples_classifier_seq2seq.py --word2vec [path to pretrain
 
 (0) To pretrain on the SubTle corpus, please run
 ```
-python3 src/model/seq2seq_RL.py --pretrain
+python3 src/model/seq2seq-RL.py --pretrain
 ```
 
 (1) To train the Fusion model, please run
@@ -59,7 +59,7 @@ python3 src/model/seq2seq-LFT.py --ckpt_classifier [name of the checkpoint]
 ```
 (3) To train the Polite-RL model, please run
 ```
-python3 src/model/seq2seq_RL.py --ckpt_classifier [name of the checkpoint]
+python3 src/model/seq2seq-RL.py --ckpt_classifier [name of the checkpoint]
 ```
 
 To test the above three models, please add "--test" to each command, the generated responses will be under output/ (you can optionally use our trained model [checkpoints](https://drive.google.com/open?id=1593PqiZFk8O1p7095D-8E6KDvxx6j1qQ) by putting them under ckpt/fusion/, ckpt/lft/ and ckpt/seq2seq-RL/, respectively).
