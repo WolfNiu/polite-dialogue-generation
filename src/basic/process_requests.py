@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[1]:
@@ -96,11 +96,11 @@ jar_pos = "stanford-postagger.jar"
 tokenizer = StanfordTokenizer(path_pos + jar_pos)
 tokenizer = StanfordTokenizer(tagger_path)
 
-# tokenized_datasets_original = [
-#     [tokenizer.tokenize(' '.join(request).strip())
-#      for request in dataset]
-#     for dataset in tokenized_datasets_original_tweet]
-tokenized_datasets_original = tokenized_datasets_original_tweet
+tokenized_datasets_original = [
+    [tokenizer.tokenize(' '.join(request).strip())
+     for request in dataset]
+    for dataset in tokenized_datasets_original_tweet]
+# tokenized_datasets_original = tokenized_datasets_original_tweet
 
 """
 Convert all tokens to lowercase

@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
@@ -26,6 +26,9 @@ from src.basic.util import (decode2string, remove_duplicates,
                             dump_pickle, dump_pickles, 
                             load_pickle, load_pickles,
                             read_lines, write_lines)
+
+
+# In[ ]:
 
 
 def parse_args():

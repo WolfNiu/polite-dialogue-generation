@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
@@ -820,6 +820,8 @@ def run_seq2seq(sess, source_lst, target_lst, mode, epoch):
     diff_lst = []
     total_loss = 0.0
     total_num_tokens = 0.0
+    
+    num_batches = 2
     for i in xrange(num_batches):
         
         start = batch_size * i
