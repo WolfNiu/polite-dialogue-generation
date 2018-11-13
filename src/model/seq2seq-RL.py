@@ -745,7 +745,6 @@ def build_seq2seq(input_seqs, target_seqs, filtered_target_seqs,
             else:
                 apply_gradients_op = apply_grads(optimizer, tower_grads)
             
-                
     return (batch_sample_ids, batch_final_lengths, 
             batch_total_loss, batch_num_tokens,
             apply_gradients_op, credit_weights_RL_stop,
@@ -821,7 +820,6 @@ def run_seq2seq(sess, source_lst, target_lst, mode, epoch):
     total_loss = 0.0
     total_num_tokens = 0.0
     
-    num_batches = 2
     for i in xrange(num_batches):
         
         start = batch_size * i

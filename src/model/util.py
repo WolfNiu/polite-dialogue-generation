@@ -459,3 +459,20 @@ def get_saver(var_scope=None):
             tf.GraphKeys.TRAINABLE_VARIABLES, scope=var_scope))
     return saver
 
+def pad_and_truncate(sample_ids, lengths, max_iterations):
+    max_length = tf.reduce_max(lengths)
+    padded_sample_ids = tf.pad(
+        sample_ids,
+        [[0, 0],
+         [0, max_iterations - max_length]])
+    truncated_sample_ids = padded_sample_ids[:, :max_iterations] # truncate length
+    return truncated_sample_ids
+
+def get_mask(seqs, indices):
+    tensor = tf.convert_to_tensor(indices)
+    bool_matrix = tf.equal(
+        tf.expand_dims(seqs, axis=0),
+        tf.reshape(tensor, [len(indices), 1, 1]))
+    mask = tf.reduce_any(bool_matrix, axis=0)
+    return mask
+

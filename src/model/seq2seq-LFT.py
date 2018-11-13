@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[ ]:
+
+
 # Imports for compatibility between Python 2&3
 from __future__ import absolute_import
 from __future__ import division
@@ -49,12 +55,16 @@ def parse_args():
     parser.add_argument(
         "--data_path", type=str, default="../data/",
         help="path to the indexed polite/rude/neutral utterances")
+    parser.add_argument(
+        "--discrete", action="store_true",
+        help="whether we use the discrete version of LFT")
     args = parser.parse_args()
     return args
 
 args = parse_args()
 data_path = args.data_path
 restore_path = args.ckpt_model
+discrete = args.discrete
 
 start_epoch = 0
 total_epochs = 40
@@ -134,32 +144,7 @@ tags = ["<person>", "<number>", "<continued_utterance>"]
 ner_tokens = [token2index[token] for token in tags]
 unk_indices = [unk_token, ner_tokens[2]]
 
-bad_indices = []
-good_indices = []
-
 print([len(triple_lst) for triple_lst in triple_lsts])
-
-if reorganize:
-    (polite_kept_lst, polite_popped_lst) = split_triple_lst(triple_lsts[0], bad_indices)
-    (rude_kept_lst, rude_popped_lst) = split_triple_lst(triple_lsts[2], good_indices)
-    triple_lsts[0] = polite_kept_lst + rude_popped_lst
-    triple_lsts[2] = rude_kept_lst + polite_popped_lst
-
-    (neutral_kept_lst_polite, neutral_popped_lst_polite) = split_triple_lst(triple_lsts[1], good_indices)
-    triple_lsts[1] = neutral_kept_lst_polite
-    triple_lsts[0] = triple_lsts[0] + neutral_popped_lst_polite
-
-    (neutral_kept_lst_rude, neutral_popped_lst_rude) = split_triple_lst(triple_lsts[1], bad_indices)
-    triple_lsts[1] = neutral_kept_lst_rude
-    triple_lsts[2] = triple_lsts[2] + neutral_popped_lst_rude
-    
-    print([len(triple_lst) for triple_lst in triple_lsts])
-
-
-if reorganize:
-    # Store reorganized utterances
-    for (filename, triple_lst) in zip(filenames[13:], triple_lsts):
-        dump_pickle(data_path + filename, triple_lst)
 
 unzipped_triples = [unzip_lst(triple_lst) for triple_lst in triple_lsts]
 [[polite_sources, polite_targets, _],
